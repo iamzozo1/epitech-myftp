@@ -33,7 +33,6 @@ int create_data_socket(int control_socket_fd) {
     data_addr.sin_addr.s_addr = INADDR_ANY;
     data_addr.sin_port = 0; // Let the system choose a free port
 
-    printf("before binding data socket\n");
     if (bind(data_socket_fd, (struct sockaddr *)&data_addr, sizeof(data_addr)) == CLASSIC_ERROR) {
         perror("Data socket bind failed");
         close(data_socket_fd);
