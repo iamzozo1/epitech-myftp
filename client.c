@@ -36,6 +36,47 @@ void read_and_display_message(int fd)
     }
 }
 
+int connect_data_socket(const char *response) {
+    int ip1, ip2, ip3, ip4, port1, port2;
+    sscanf(response, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)",
+           &ip1, &ip2, &ip3, &ip4, &port1, &port2);
+
+    char ip[16];
+    snprintf(ip, sizeof(ip), "%d.%d.%d.%d", ip1, ip2, ip3, ip4);
+    int port = port1 * 256 + port2;
+
+    struct sockaddr_in data_addr;
+    int data_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    data_addr.sin_family = AF_INET;
+    data_addr.sin_port = htons(port);
+    data_addr.sin_addr.s_addr = inet_addr(ip);
+
+    if (connect(data_fd, (struct sockaddr *)&data_addr, sizeof(data_addr)) == CLASSIC_ERROR) {
+        perror("Data connection failed");
+        close(data_fd);
+        return CLASSIC_ERROR;
+    }
+    return data_fd;
+}
+
+void receive_file(int data_fd, const char *filepath) {
+    FILE *file = fopen(filepath, "wb");
+    char buffer[1024];
+    int bytes_read;
+
+    if (!file) {
+        perror("Failed to create file");
+        return;
+    }
+
+    while ((bytes_read = read(data_fd, buffer, sizeof(buffer))) > 0) {
+        fwrite(buffer, 1, bytes_read, file);
+    }
+
+    fclose(file);
+}
+
 int main(int ac, char **av)
 {
     struct sockaddr_in servaddr;
@@ -64,14 +105,28 @@ int main(int ac, char **av)
 
     char *buffer = NULL;
     size_t len = 0;
-    write(1, "Enter message: ", strlen("Enter message: "));
+    write(1, "Enter command: ", strlen("Enter command: "));
 
     while (getline(&buffer, &len, stdin) != CLASSIC_ERROR) {
         if (strcmp(buffer, "exit\n") == 0) {
             break;
         }
         write(fd, buffer, strlen(buffer));
-        write(1, "Enter message: ", strlen("Enter message: "));
+
+        if (strncmp(buffer, "PASV", 4) == 0) {
+            char response[256] = {0};
+            read(fd, response, sizeof(response));
+            printf("Server response: %s", response);
+
+            int data_fd = connect_data_socket(response);
+            if (data_fd != CLASSIC_ERROR) {
+                printf("Data connection established\n");
+                // Wait for RETR command and handle file transfer
+                receive_file(data_fd, "received_file");
+                close(data_fd);
+            }
+        }
+        write(1, "Enter command: ", strlen("Enter command: "));
     }
 
     free(buffer);
