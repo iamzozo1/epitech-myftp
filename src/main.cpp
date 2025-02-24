@@ -5,7 +5,7 @@
 ** main
 */
 
-#include "Server.hpp"
+#include "Core.hpp"
 
 using namespace ftp;
 
@@ -16,10 +16,8 @@ int main(int ac, char **av)
         return 84;
     }
 
-    int port = std::stoi(av[1]);
-    const char *homePath = av[2];
+    Core c = Core(std::stoi(av[1]), av[2]);
 
-    Server server = Server(port, homePath);
-
+    c.start();
     return 0;
 }

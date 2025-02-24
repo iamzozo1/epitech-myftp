@@ -9,9 +9,9 @@
     #define SOCKET_HPP_
 
     #include <sys/socket.h>
+    #include <unistd.h>
 
     #include "Error.hpp"
-    #include "wrapped/Close.hpp"
 
 namespace ftp
 {
@@ -20,11 +20,17 @@ namespace ftp
             Socket(int domain, int type, int protocole = 0);
             ~Socket();
 
-            int getFd() const { return _fd; };
+            void setSockAddress(struct sockaddr *addr, socklen_t addrlen);
 
-        protected:
-        private:
+            void bind();
+            void getSockName();
+            int accept();
+            void listen(int backlog);
+
             int _fd;
+        private:
+            struct sockaddr *_addr;
+            socklen_t _addrlen;
     };
 
 } // namespace ftp

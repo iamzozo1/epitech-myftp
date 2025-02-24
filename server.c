@@ -194,16 +194,6 @@ void handle_connections(int server_fd) {
             }
 
             printf("New connection accepted...\n");
-
-            if (nfds < MAX_CLIENTS) {
-                fds[nfds].fd = new_socket_fd;
-                fds[nfds].events = POLLIN;
-                nfds++;
-                printf("added new fd\n");
-            } else {
-                printf("Max clients reached. Closing new connection...\n");
-                close(new_socket_fd);
-            }
         } else {
             printf("before help clients\n");
             help_clients(fds, nfds);
