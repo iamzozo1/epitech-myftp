@@ -18,14 +18,16 @@ namespace ftp
     class Socket {
         public:
             Socket(int domain, int type, int protocole = 0);
+            Socket(int fd);
             ~Socket();
 
             void setSockAddress(struct sockaddr *addr, socklen_t addrlen);
 
             void bind();
             void getSockName();
-            int accept();
+            int accept(struct sockaddr *addr, socklen_t *addrlen);
             void listen(int backlog);
+            ssize_t write(const char *buf);
 
             int _fd;
         private:
