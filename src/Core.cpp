@@ -15,12 +15,17 @@ namespace ftp
         std::vector<struct pollfd> fds;
 
         while (true) {
+            printf("before getting fd\n");
             fds = s->getFds();
-            p.pollAction(fds.data(), fds.size(), 0);
+            printf("before poll action\n");
+            p.pollAction(fds.data(), fds.size(), WAIT_FOR_EVENT);
 
+            printf("checking new connection request\n");
             if (fds[0].revents & POLLIN) {
+                printf("manage connection\n");
                 s->connectClient();
             } else {
+                printf("handle clients\n");
                 s->handleClients();
             }
         }

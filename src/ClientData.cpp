@@ -21,6 +21,11 @@ namespace ftp
         _socket = socket;
     }
 
+    void ClientData::setPollFd(struct pollfd &p)
+    {
+        _pollfd = std::make_shared<struct pollfd>(p);
+    }
+
     void ClientData::openDataSocket(void)
     {
         if (_socket == nullptr) {
@@ -69,14 +74,18 @@ namespace ftp
     {
         char filepath[1024];
 
-        if (_dataSocket == nullptr) {
-            _socket->write("FTP_ERROR: Use PASV first\r\n");
-            return;
+        if (cmd == RETR) {
+            if (_dataSocket == nullptr) {
+                _socket->write("FTP_ERROR: Use PASV first\r\n");
+                return;
+            }
+            sscanf(buffer.c_str(), "RETR %s", filepath);
+            _dataSocket->accept(NULL, NULL);
+            sendFile(filepath);
+            _dataSocket.reset();
+        } else {
+            throw Error("ClientData::command: command not defined");
         }
-        sscanf(buffer.c_str(), "RETR %s", filepath);
-        _dataSocket->accept(NULL, NULL);
-        sendFile(filepath);
-        _dataSocket.reset();
     }
 
 } // namespace ftp

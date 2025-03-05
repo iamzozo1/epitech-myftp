@@ -19,6 +19,7 @@ namespace ftp
         if (ret == ERROR)
             throw Error("Poll error");
         _ret = ret;
+        return ret;
     }
 
 } // namespace ftp

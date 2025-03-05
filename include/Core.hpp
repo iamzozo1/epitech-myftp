@@ -10,6 +10,9 @@
 
     #include "Server.hpp"
 
+    #define WAIT_FOR_EVENT -1
+    #define SUCCESS 0
+
 namespace ftp
 {
     class Core {

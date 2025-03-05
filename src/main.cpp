@@ -17,7 +17,5 @@ int main(int ac, char **av)
     }
 
     Core c = Core(std::stoi(av[1]), av[2]);
-
-    c.start();
-    return 0;
+    return SUCCESS;
 }

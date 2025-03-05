@@ -7,14 +7,12 @@
 
 CC = g++
 
-CPPFLAGS = -Wall -Wextra -std=c++17
-
 SRC	=	src/Server.cpp	\
+		src/Core.cpp	\
 		src/Error.cpp	\
-		src/wrapped/Bind.cpp	\
-		src/wrapped/Close.cpp	\
-		src/wrapped/Listen.cpp	\
 		src/wrapped/Socket.cpp	\
+		src/wrapped/Poll.cpp	\
+		src/ClientData.cpp	\
 
 MAIN =	src/main.cpp	\
 
@@ -24,7 +22,7 @@ OBJ	=	$(SRC:.cpp=.o)
 
 MAIN_OBJ = $(MAIN:.cpp=.o)
 
-CFLAGS	=	-Wall -Wextra
+CFLAGS	=	-Wall -Wextra -std=c++17
 
 CPPFLAGS	=	-I include/
 

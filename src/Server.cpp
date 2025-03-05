@@ -9,9 +9,8 @@
 
 namespace ftp
 {
-    void Server::setAddress(struct sockaddr_in address, int family, u_int16_t port, in_addr_t s_addr)
+    void Server::setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr)
     {
-        address = {0};
         address.sin_family = family;
         address.sin_port = htons(port);
         address.sin_addr.s_addr = s_addr;
@@ -24,6 +23,7 @@ namespace ftp
         newFd.fd = fd;
         newFd.events = POLLIN;
         _fds.push_back(newFd);
+        return newFd;
     }
 
     void Server::connectClient()
@@ -38,16 +38,20 @@ namespace ftp
 
     void Server::handleClient(ClientData &client)
     {
-        char buffer[1024] = {0};
+        char buffer[BUFSIZ] = {0};
         int ret;
         int clientFd = client.getSocket()->_fd;
         std::shared_ptr<Socket> dataSocket = client.getDataSocket();
 
-        while ((ret = read(clientFd, buffer, 1024)) > 0) {
-            if (strncmp(buffer, "PASV", 4) == 0) {
+        while ((ret = read(clientFd, buffer, BUFSIZ)) > 0)
+        {
+            if (strncmp(buffer, "PASV", 4) == 0)
+            {
                 client.openDataSocket();
                 dataSocket = client.getDataSocket();
-            } else if (strncmp(buffer, "RETR ", 5) == 0) {
+            }
+            else if (strncmp(buffer, "RETR ", 5) == 0)
+            {
                 client.command(RETR, buffer);
             }
             memset(buffer, 0, sizeof(buffer));
@@ -56,9 +60,10 @@ namespace ftp
 
     void Server::handleClients()
     {
-        for (auto &client : _clients) {
-            if (client.getPollFd()->events & POLLIN) {
-                handleClient(client);
+        for (unsigned int i = 1; i < _fds.size(); i++) {
+            if (_fds[i].revents & POLLIN) {
+                _clients[i - 1].setPollFd(_fds[i]);
+                handleClient(_clients[i - 1]);
             }
         }
     }
@@ -74,4 +79,3 @@ namespace ftp
         addFdToServer(_serverSocket->_fd);
     }
 } // namespace ftp
-

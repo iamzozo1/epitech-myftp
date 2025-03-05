@@ -9,17 +9,17 @@
 
 namespace ftp
 {
-    Socket::Socket(int domain, int type, int protocole) : _fd(ERROR), _addr(nullptr)
+    Socket::Socket(int domain, int type, int protocole) : _fd(ERROR), _addr(NULL)
     {
         int fd = socket(domain, type, 0);
 
         if (fd == ERROR) {
-            throw Error("Socket initialization:");
+            throw Error("Socket initialization");
         }
         _fd = fd;
     }
 
-    Socket::Socket(int fd) : _fd(fd), _addr(nullptr)
+    Socket::Socket(int fd) : _fd(fd), _addr(NULL)
     {}
 
     Socket::~Socket()
@@ -34,14 +34,14 @@ namespace ftp
     void Socket::setSockAddress(struct sockaddr *addr, socklen_t addrlen)
     {
         _addr = addr;
-        _addrlen = _addrlen;
+        _addrlen = addrlen;
     }
 
     void Socket::getSockName()
     {
         if (_fd == ERROR)
             throw Error("Unable to getsockname of closed fd");
-        if (getsockname(_fd, _addr, &_addrlen)) {
+        if (getsockname(_fd, _addr, &_addrlen) == ERROR) {
             throw Error("getsockname");
         }
     }
@@ -61,7 +61,7 @@ namespace ftp
     {
         if (_fd == ERROR)
             throw Error("Unable to listen to closed fd");
-        if (::listen(_fd, backlog) != ERROR) {
+        if (::listen(_fd, backlog) == ERROR) {
             throw Error("Unable to listen to sockfd");
         }
     }

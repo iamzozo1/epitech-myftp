@@ -11,6 +11,7 @@
     #include <string>
     #include <string.h>
     #include <iostream>
+    #include <poll.h>
     #include <arpa/inet.h>
     #include <memory>
     #include <vector>
@@ -33,10 +34,11 @@ namespace ftp
             struct pollfd addFdToServer(int fd);
             void connectClient();
             void handleClients();
-            static void setAddress(struct sockaddr_in, int family, u_int16_t port, in_addr_t s_addr);
+            static void setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr);
 
         protected:
         private:
+            void updateClientsPollFd();
             void handleClient(ClientData &client);
             Socket openDataSocket(int clientFd) const;
 

@@ -10,9 +10,10 @@
 
     #include <memory>
     #include <string>
+    #include <poll.h>
     #include <fstream>
     #include <arpa/inet.h>
-    #include "Socket.hpp"
+    #include "wrapped/Socket.hpp"
 
 namespace ftp
 {
@@ -23,11 +24,12 @@ namespace ftp
     class ClientData {
         public:
             ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket = nullptr, std::shared_ptr<Socket> dataSocket = nullptr);
-            ~ClientData();
+            ~ClientData() = default;
 
             void openDataSocket(void);
 
             void setSocket(std::shared_ptr<Socket>);
+            void setPollFd(struct pollfd &s);
 
             std::shared_ptr<Socket> getSocket() const { return _socket; }
             std::shared_ptr<Socket> getDataSocket() const { return _dataSocket; }
@@ -36,8 +38,8 @@ namespace ftp
             void command(CommandName cmd, std::string buffer);
 
         private:
-            void ClientData::sendFile(const std::string& filepath);
-            
+            void sendFile(const std::string& filepath);
+
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;
             std::shared_ptr<struct pollfd> _pollfd;
