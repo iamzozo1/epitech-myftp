@@ -39,22 +39,22 @@ namespace ftp
     void Server::handleClient(ClientData &client)
     {
         char buffer[BUFSIZ] = {0};
-        int ret;
-        int clientFd = client.getSocket()->_fd;
-        std::shared_ptr<Socket> dataSocket = client.getDataSocket();
+        std::shared_ptr<Socket> socket = client.getSocket();
+        ssize_t bytes;
 
-        while ((ret = read(clientFd, buffer, BUFSIZ)) > 0)
-        {
-            if (strncmp(buffer, "PASV", 4) == 0)
-            {
-                client.openDataSocket();
-                dataSocket = client.getDataSocket();
-            }
-            else if (strncmp(buffer, "RETR ", 5) == 0)
-            {
-                client.command(RETR, buffer);
-            }
-            memset(buffer, 0, sizeof(buffer));
+        bytes = socket->read(buffer, sizeof(buffer) - 1);
+        if (bytes <= 0)
+            return;
+        buffer[bytes - 1] = '\0';
+
+        if (strncmp(buffer, "PASV", 4) == 0) {
+            client.openDataSocket();
+        } else if (strncmp(buffer, "RETR ", 5) == 0) {
+            client.command(RETR, buffer);
+        } else if (strncmp(buffer, "QUIT", 4) == 0) {
+            socket->write("221 Goodbye.\r\n");
+        } else {
+            socket->write("500 Unknown command.\r\n");
         }
     }
 
@@ -78,4 +78,13 @@ namespace ftp
         _serverSocket->listen(LISTEN_BACKLOG);
         addFdToServer(_serverSocket->_fd);
     }
+
+    void Server::updateFdsAfterPoll(struct pollfd *fds)
+    {
+        for (unsigned int i = 0; i < _fds.size(); i++) {
+            if (fds[i].revents & POLLIN)
+                _fds[i] = fds[i];
+        }
+    }
+
 } // namespace ftp

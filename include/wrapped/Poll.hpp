@@ -12,13 +12,15 @@
 
 namespace ftp
 {
+    class Server;
+
     class Poll {
         public:
             Poll();
             ~Poll() = default;
 
             int getRet() const { return _ret; }
-            int pollAction(struct pollfd *fds, nfds_t nfds, int timeout);
+            int pollAction(Server &s, struct pollfd *fds, nfds_t nfds, int timeout);
 
         private:
             int _ret;

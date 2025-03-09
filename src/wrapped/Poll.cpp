@@ -6,19 +6,21 @@
 */
 
 #include "wrapped/Poll.hpp"
+#include "Server.hpp"
 
 namespace ftp
 {
     Poll::Poll() : _ret(ERROR)
     {}
 
-    int Poll::pollAction(struct pollfd *fds, nfds_t nfds, int timeout)
+    int Poll::pollAction(Server &s, struct pollfd *fds, nfds_t nfds, int timeout)
     {
         int ret = poll(fds, nfds, timeout);
 
         if (ret == ERROR)
             throw Error("Poll error");
         _ret = ret;
+        s.updateFdsAfterPoll(fds);
         return ret;
     }
 

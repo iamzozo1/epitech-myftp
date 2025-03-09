@@ -34,6 +34,7 @@ namespace ftp
             struct pollfd addFdToServer(int fd);
             void connectClient();
             void handleClients();
+            void updateFdsAfterPoll(struct pollfd *);
             static void setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr);
 
         protected:

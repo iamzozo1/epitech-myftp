@@ -15,17 +15,12 @@ namespace ftp
         std::vector<struct pollfd> fds;
 
         while (true) {
-            printf("before getting fd\n");
             fds = s->getFds();
-            printf("before poll action\n");
-            p.pollAction(fds.data(), fds.size(), WAIT_FOR_EVENT);
-
-            printf("checking new connection request\n");
+            p.pollAction(*s, fds.data(), fds.size(), WAIT_FOR_EVENT);
+            
             if (fds[0].revents & POLLIN) {
-                printf("manage connection\n");
                 s->connectClient();
             } else {
-                printf("handle clients\n");
                 s->handleClients();
             }
         }
@@ -33,13 +28,10 @@ namespace ftp
 
     Core::Core(int port, char const *homePath)
     {
-        try
-        {
+        try {
             Server s = Server(port, homePath);
             start(&s);
-        }
-        catch(const std::exception& e)
-        {
+        } catch(const std::exception& e) {
             std::cerr << e.what() << '\n';
         }
     }

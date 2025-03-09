@@ -34,6 +34,7 @@ namespace ftp
             std::shared_ptr<Socket> getSocket() const { return _socket; }
             std::shared_ptr<Socket> getDataSocket() const { return _dataSocket; }
             std::shared_ptr<struct pollfd> getPollFd() const { return _pollfd; }
+            void setPollFdAsRead();
 
             void command(CommandName cmd, std::string buffer);
 

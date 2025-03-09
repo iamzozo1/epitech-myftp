@@ -28,31 +28,35 @@ namespace ftp
 
     void ClientData::openDataSocket(void)
     {
-        if (_socket == nullptr) {
-            throw Error("Unable to open data socket with no control socket opened");
-        }
+        if (_socket == nullptr)
+            throw Error("No control connection");
+
+        _dataSocket = std::make_shared<Socket>(AF_INET, SOCK_STREAM, 0);
+
         struct sockaddr_in data_addr;
-        struct sockaddr_in bound_addr;
-        socklen_t addr_len = sizeof(bound_addr);
-        Socket dataSocket = Socket(AF_INET, SOCK_STREAM, 0);
+        memset(&data_addr, 0, sizeof(data_addr));
 
-        Server::setAddress(data_addr, AF_INET, INADDR_ANY, 0);
-        dataSocket.setSockAddress((struct sockaddr *)&data_addr, sizeof(data_addr));
-        dataSocket.bind();
-        dataSocket.listen(LISTEN_BACKLOG);
-        dataSocket.getSockName();
+        Server::setAddress(data_addr, AF_INET, 0, INADDR_ANY);
+        _dataSocket->setSockAddress((struct sockaddr *)&data_addr, sizeof(data_addr));
+        _dataSocket->bind();
+        _dataSocket->listen(1);
+        _dataSocket->getSockName();
 
-        int port = ntohs(bound_addr.sin_port);
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+        if (getsockname(_dataSocket->_fd, (struct sockaddr*)&addr, &len) == ERROR)
+            throw Error("getsockname failed");
+
+        int port = ntohs(addr.sin_port);
         char response[256];
         snprintf(response, sizeof(response), "227 Entering Passive Mode (127,0,0,1,%d,%d)\r\n", port / 256, port % 256);
         _socket->write(response);
-
-        _dataSocket = std::make_shared<Socket>(dataSocket);
     }
 
     void ClientData::sendFile(const std::string& filepath)
     {
         std::ifstream file(filepath, std::ios::binary);
+        ssize_t bytesRead = 0;
         char buffer[1024];
 
         if (!file.is_open()) {
@@ -62,10 +66,16 @@ namespace ftp
 
         _socket->write("FTP_FILE_OK: File status okay\r\n");
 
-        while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0) {
-            _dataSocket->write(buffer);
+        while (file) {
+            file.read(buffer, sizeof(buffer));
+            bytesRead = file.gcount();
+            if (bytesRead > 0) {
+                if (_dataSocket->write(buffer) <= 0) {
+                    _socket->write("FTP_ERROR: Data socket write failed\r\n");
+                    break;
+                }
+            }
         }
-
         file.close();
         _socket->write("FTP_TRANSFER_COMPLETE: Transfer complete\r\n");
     }
@@ -86,6 +96,11 @@ namespace ftp
         } else {
             throw Error("ClientData::command: command not defined");
         }
+    }
+
+    void ClientData::setPollFdAsRead()
+    {
+        _pollfd->revents = 0;
     }
 
 } // namespace ftp

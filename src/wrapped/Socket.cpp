@@ -83,4 +83,11 @@ namespace ftp
         size = strlen(buf);
         return ::write(_fd, buf, size);
     }
+
+    ssize_t Socket::read(char *buf, size_t count)
+    {
+        if (buf == nullptr || _fd == ERROR)
+            return 0;
+        return ::read(_fd, buf, count);
+    }
 } // namespace ftp
