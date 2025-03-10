@@ -28,6 +28,26 @@ namespace ftp
             std::string _message;
     };
 
+    class FileOpenError : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
+    class DataSocketWriteError : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
+    class DataSocketNullError : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
+    class InvalidCommandError : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
 } // namespace ftp
 
 

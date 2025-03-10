@@ -25,9 +25,7 @@ namespace ftp
     Socket::~Socket()
     {
         if (_fd != ERROR) {
-            if (close(_fd) == ERROR) {
-                throw Error("Unable to close fd");
-            }
+            close(_fd);
         }
     }
 
@@ -54,6 +52,8 @@ namespace ftp
 
         if (ret == ERROR)
             throw Error("Accept failed");
+        // close(_fd); should be checked
+        _fd = ret;
         return ret;
     }
 
@@ -74,20 +74,29 @@ namespace ftp
             throw Error("Unable to bind socket address");
     }
 
-    ssize_t Socket::write(const char *buf)
+    ssize_t Socket::write(std::string buf)
     {
         size_t size = 0;
+        size_t bytesWritten = 0;
 
-        if (buf == nullptr || _fd == ERROR)
+        if (buf.empty() || _fd == ERROR)
             return 0;
-        size = strlen(buf);
-        return ::write(_fd, buf, size);
+        size = buf.size();
+        bytesWritten = ::write(_fd, buf.c_str(), size);
+        if (bytesWritten == ERROR)
+            throw Error("Error: Socket::write failed");
+        return bytesWritten;
     }
 
     ssize_t Socket::read(char *buf, size_t count)
     {
+        size_t bytesRead = 0;
+
         if (buf == nullptr || _fd == ERROR)
             return 0;
-        return ::read(_fd, buf, count);
+        bytesRead = ::read(_fd, buf, count);
+        if (bytesRead == ERROR)
+            throw Error("Error: Socket::read failed");
+        return bytesRead;
     }
 } // namespace ftp

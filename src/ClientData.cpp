@@ -60,24 +60,21 @@ namespace ftp
         char buffer[1024];
 
         if (!file.is_open()) {
-            _socket->write("FTP_ERROR: Failed to open file\r\n");
-            return;
+            throw FileOpenError();
         }
-
-        _socket->write("FTP_FILE_OK: File status okay\r\n");
+        _socket->write("150 File status okay\r\n");
 
         while (file) {
             file.read(buffer, sizeof(buffer));
             bytesRead = file.gcount();
             if (bytesRead > 0) {
                 if (_dataSocket->write(buffer) <= 0) {
-                    _socket->write("FTP_ERROR: Data socket write failed\r\n");
-                    break;
+                    throw DataSocketWriteError();
                 }
             }
         }
         file.close();
-        _socket->write("FTP_TRANSFER_COMPLETE: Transfer complete\r\n");
+        _socket->write("226 Transfer complete. Closing data connection\r\n");
     }
 
     void ClientData::command(CommandName cmd, std::string buffer)
@@ -86,15 +83,18 @@ namespace ftp
 
         if (cmd == RETR) {
             if (_dataSocket == nullptr) {
-                _socket->write("FTP_ERROR: Use PASV first\r\n");
-                return;
+                throw DataSocketNullError();
             }
             sscanf(buffer.c_str(), "RETR %s", filepath);
             _dataSocket->accept(NULL, NULL);
-            sendFile(filepath);
+            try {
+                sendFile(filepath);
+            } catch(const std::exception& e) {
+                _socket->write(e.what());
+            }
             _dataSocket.reset();
         } else {
-            throw Error("ClientData::command: command not defined");
+            throw InvalidCommandError();
         }
     }
 

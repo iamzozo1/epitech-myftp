@@ -50,7 +50,11 @@ namespace ftp
         if (strncmp(buffer, "PASV", 4) == 0) {
             client.openDataSocket();
         } else if (strncmp(buffer, "RETR ", 5) == 0) {
-            client.command(RETR, buffer);
+            try {
+                client.command(RETR, buffer);
+            } catch(const std::exception& e) {
+                socket->write(e.what());
+            }
         } else if (strncmp(buffer, "QUIT", 4) == 0) {
             socket->write("221 Goodbye.\r\n");
         } else {

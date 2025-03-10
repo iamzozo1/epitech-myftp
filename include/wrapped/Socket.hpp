@@ -27,7 +27,7 @@ namespace ftp
             void getSockName();
             int accept(struct sockaddr *addr, socklen_t *addrlen);
             void listen(int backlog);
-            ssize_t write(const char *buf);
+            ssize_t write(std::string buf);
             ssize_t read(char *buf, size_t count);
 
             int _fd;
