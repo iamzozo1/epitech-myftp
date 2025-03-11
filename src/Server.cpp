@@ -64,7 +64,7 @@ namespace ftp
         ClientData newClient = ClientData(std::make_shared<struct pollfd>(newPollFd), newClientSocket, nullptr);
 
         _clients.push_back(newClient);
-        newClient.getSocket()->write("220 Connected successfully to Enzo's FTP Server.\r\n");
+        newClient.getSocket()->write("220 Service ready for new user.\r\n");
     }
 
     void Server::handleClient(ClientData &client)
@@ -85,7 +85,7 @@ namespace ftp
         } else if (cmd == PASV) {
             client.openDataSocket();
         } else if (strncmp(buffer, "QUIT", 4) == 0) {
-            socket->write("221 Goodbye.\r\n");
+            socket->write("221 Service closing control connection.\r\n");
         } else {
             try {
                 client.command(cmd, buffer);
@@ -107,7 +107,7 @@ namespace ftp
 
     Server::Server(int port, char const *homePath) : _serverSocket(nullptr)
     {
-        (void)homePath;
+        _homePath = homePath;
         _serverSocket = std::make_shared<Socket>(AF_INET, SOCK_STREAM, 0);
         setAddress(_address, AF_INET, port, INADDR_ANY);
         _serverSocket->setSockAddress((struct sockaddr *)&_address, (socklen_t)sizeof(_address));

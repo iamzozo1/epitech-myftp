@@ -10,7 +10,7 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _user("")
+    ClientData::ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _user(""), _path("/")
     {
     }
 
@@ -62,7 +62,7 @@ namespace ftp
         if (!file.is_open()) {
             throw FileOpenError();
         }
-        _socket->write("150 File status okay\r\n");
+        _socket->write("150 File status okay; about to open data connection.\r\n");
 
         while (file) {
             file.read(buffer, sizeof(buffer));
@@ -74,7 +74,7 @@ namespace ftp
             }
         }
         file.close();
-        _socket->write("226 Transfer complete. Closing data connection\r\n");
+        _socket->write("Closing data connection.\r\n");
     }
 
     std::string ClientData::getCommandArg(std::string buffer) const
@@ -84,6 +84,36 @@ namespace ftp
         if (pos == std::string::npos || pos + 1 >= buffer.size())
             throw InvalidCommandError();
         return buffer.substr(pos + 1);
+    }
+
+    void ClientData::changeWorkingDirectory(std::string arg)
+    {
+        std::string newPath;
+
+        if (arg[0] == '/') {
+            newPath = arg;
+        } else if (arg.compare("..") == 0) {
+            size_t lastSlash = _path.find_last_of('/');
+            if (lastSlash != std::string::npos && _path != "/") {
+                newPath = _path.substr(0, lastSlash);
+                if (newPath.empty())
+                    newPath = "/";
+            } else {
+                newPath = _path;
+            }
+        } else {
+            if (_path.compare("/") == 0)
+                newPath = _path + arg;
+            else
+                newPath = _path + "/" + arg;
+        }
+
+        if (chdir(newPath.c_str()) != ERROR) {
+            _path = newPath;
+            _socket->write("250 Requested file action okay, completed.\r\n");
+        } else {
+            _socket->write("550 Failed to change directory.\r\n");
+        }
     }
 
     void ClientData::command(CommandName cmd, std::string buffer)
@@ -106,7 +136,20 @@ namespace ftp
             _dataSocket.reset();
         } else if (cmd == USER) {
             _user = getCommandArg(buffer);
-            _socket->write("331 User name okay, need password.");
+            _socket->write("331 User name okay, need password.\r\n");
+        } else if (cmd == PASS) {
+            if (_user.empty())
+                _socket->write("331 User name okay, need password.\r\n");
+            else {
+                try {
+                    _password = getCommandArg(buffer);
+                } catch(const InvalidCommandError &e) {
+                    _password = "";
+                }
+                _socket->write("230 User logged in, proceed.\r\n");
+            }
+        } else if (cmd == CWD) {
+            changeWorkingDirectory(getCommandArg(buffer));
         } else {
             throw InvalidCommandError();
         }

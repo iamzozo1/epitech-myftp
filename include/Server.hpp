@@ -40,6 +40,8 @@ namespace ftp
             static void setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr);
             CommandName getClientCommand(std::string buffer) const;
 
+            std::string getHomePath() const { return _homePath; };
+
         protected:
         private:
             void updateClientsPollFd();
@@ -50,6 +52,7 @@ namespace ftp
             struct sockaddr_in _address;
             std::vector<struct pollfd> _fds;
             std::vector<ClientData> _clients;
+            std::string _homePath;
     };
 } // namespace ftp
 
