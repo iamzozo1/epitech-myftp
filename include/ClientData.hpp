@@ -56,8 +56,10 @@ namespace ftp
 
         private:
             void sendFile(const std::string& filepath);
-            void changeWorkingDirectory(std::string arg);
+            bool changeWorkingDirectory(std::string arg);
+            void listDir(const std::string& path) const;
             std::string getCommandArg(std::string buffer) const;
+            std::string getNewPath(std::string buffer) const;
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;

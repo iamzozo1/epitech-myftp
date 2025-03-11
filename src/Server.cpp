@@ -11,16 +11,22 @@ namespace ftp
 {
     CommandName Server::getClientCommand(std::string buffer) const
     {
-        if (buffer.empty() || buffer.size() < COMMAND_SIZE)
-            return UNKNOWN;
-
-        std::string cmd = buffer.substr(0, 4);
+        std::string cmd;
+        size_t pos = buffer.find_first_of(" \n\0\t");
         std::unordered_map<std::string, CommandName> commandsMap;
+
+        if (buffer.empty())
+            return UNKNOWN;
+        if (pos != std::string::npos) {
+            cmd = buffer.substr(0, pos);
+        } else {
+            cmd = buffer;
+        }
 
         commandsMap["PASV"] = PASV;
         commandsMap["USER"] = USER;
         commandsMap["PASS"] = PASS;
-        commandsMap["CWD "] = CWD;
+        commandsMap["CWD"] = CWD;
         commandsMap["CDUP"] = CDUP;
         commandsMap["QUIT"] = QUIT;
         commandsMap["PORT"] = PORT;
@@ -29,7 +35,7 @@ namespace ftp
         commandsMap["RETR"] = RETR;
         commandsMap["LIST"] = LIST;
         commandsMap["DELE"] = DELE;
-        commandsMap["PWD "] = PWD;
+        commandsMap["PWD"] = PWD;
         commandsMap["HELP"] = HELP;
         commandsMap["NOOP"] = NOOP;
 
@@ -64,7 +70,14 @@ namespace ftp
         ClientData newClient = ClientData(std::make_shared<struct pollfd>(newPollFd), newClientSocket, nullptr);
 
         _clients.push_back(newClient);
-        newClient.getSocket()->write("220 Service ready for new user.\r\n");
+
+        newClient.getSocket()->write("220 Service ready for new user.");
+    }
+
+    void Server::closeClientConnection(unsigned int clientNb)
+    {
+        _clients.erase(_clients.begin() + (clientNb - 1));
+        _fds.erase(_fds.begin() + clientNb);
     }
 
     void Server::handleClient(ClientData &client)
@@ -80,18 +93,13 @@ namespace ftp
         buffer[bytes - 1] = '\0';
         cmd = getClientCommand(buffer);
 
-        if (cmd == UNKNOWN) {
-            socket->write("500 Unknown command.\r\n");
-        } else if (cmd == PASV) {
-            client.openDataSocket();
-        } else if (strncmp(buffer, "QUIT", 4) == 0) {
-            socket->write("221 Service closing control connection.\r\n");
-        } else {
-            try {
-                client.command(cmd, buffer);
-            } catch(const std::exception& e) {
-                socket->write(e.what());
-            }
+        try {
+            client.command(cmd, buffer);
+        } catch(const ConnectionClosed& e) {
+            socket->write(e.what());
+            throw ConnectionClosed();
+        } catch(const std::exception& e) {
+            socket->write(e.what());
         }
     }
 
@@ -100,8 +108,20 @@ namespace ftp
         for (unsigned int i = 1; i < _fds.size(); i++) {
             if (_fds[i].revents & POLLIN) {
                 _clients[i - 1].setPollFd(_fds[i]);
-                handleClient(_clients[i - 1]);
+                try {
+                    handleClient(_clients[i - 1]);
+                } catch(const ConnectionClosed& e) {
+                    closeClientConnection(i);
+                }
             }
+        }
+    }
+
+    void Server::updateFdsAfterPoll(struct pollfd *fds)
+    {
+        for (unsigned int i = 0; i < _fds.size(); i++) {
+            if (fds[i].revents & POLLIN)
+                _fds[i] = fds[i];
         }
     }
 
@@ -114,14 +134,6 @@ namespace ftp
         _serverSocket->bind();
         _serverSocket->listen(LISTEN_BACKLOG);
         addFdToServer(_serverSocket->_fd);
-    }
-
-    void Server::updateFdsAfterPoll(struct pollfd *fds)
-    {
-        for (unsigned int i = 0; i < _fds.size(); i++) {
-            if (fds[i].revents & POLLIN)
-                _fds[i] = fds[i];
-        }
     }
 
 } // namespace ftp

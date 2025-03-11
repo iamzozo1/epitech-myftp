@@ -52,8 +52,6 @@ namespace ftp
 
         if (ret == ERROR)
             throw Error("Accept failed");
-        // close(_fd); should be checked
-        _fd = ret;
         return ret;
     }
 
@@ -81,6 +79,7 @@ namespace ftp
 
         if (buf.empty() || _fd == ERROR)
             return 0;
+        buf += CRLF;
         size = buf.size();
         bytesWritten = ::write(_fd, buf.c_str(), size);
         if (bytesWritten == ERROR)

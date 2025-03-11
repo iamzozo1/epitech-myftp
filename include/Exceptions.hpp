@@ -48,6 +48,11 @@ namespace ftp
             const char* what() const noexcept override;
     };
 
+    class ConnectionClosed : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
 } // namespace ftp
 
 

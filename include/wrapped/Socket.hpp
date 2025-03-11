@@ -6,37 +6,39 @@
 */
 
 #ifndef SOCKET_HPP_
-    #define SOCKET_HPP_
+#define SOCKET_HPP_
 
-    #include <sys/socket.h>
-    #include <unistd.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-    #include "Error.hpp"
+#include "Exceptions.hpp"
+#define CRLF "\r\n"
 
 namespace ftp
 {
-    class Socket {
-        public:
-            Socket(int domain, int type, int protocole = 0);
-            Socket(int fd);
-            ~Socket();
+    class Socket
+    {
+    public:
+        Socket(int domain, int type, int protocole = 0);
+        Socket(int fd);
+        ~Socket();
 
-            void setSockAddress(struct sockaddr *addr, socklen_t addrlen);
+        void setSockAddress(struct sockaddr *addr, socklen_t addrlen);
 
-            void bind();
-            void getSockName();
-            int accept(struct sockaddr *addr, socklen_t *addrlen);
-            void listen(int backlog);
-            ssize_t write(std::string buf);
-            ssize_t read(char *buf, size_t count);
+        void bind();
+        void getSockName();
+        int accept(struct sockaddr *addr, socklen_t *addrlen);
+        void listen(int backlog);
+        ssize_t write(std::string buf);
+        ssize_t read(char *buf, size_t count);
 
-            int _fd;
-        private:
-            struct sockaddr *_addr;
-            socklen_t _addrlen;
+        int _fd;
+
+    private:
+        struct sockaddr *_addr;
+        socklen_t _addrlen;
     };
 
 } // namespace ftp
-
 
 #endif /* !SOCKET_HPP_ */

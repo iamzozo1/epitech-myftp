@@ -9,7 +9,7 @@ CC = g++
 
 SRC	=	src/Server.cpp	\
 		src/Core.cpp	\
-		src/Error.cpp	\
+		src/Exceptions.cpp	\
 		src/wrapped/Socket.cpp	\
 		src/wrapped/Poll.cpp	\
 		src/ClientData.cpp	\

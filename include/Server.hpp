@@ -46,6 +46,7 @@ namespace ftp
         private:
             void updateClientsPollFd();
             void handleClient(ClientData &client);
+            void closeClientConnection(unsigned int clientNb);
             Socket openDataSocket(int clientFd) const;
 
             std::shared_ptr<Socket> _serverSocket;

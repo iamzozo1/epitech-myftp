@@ -6,24 +6,25 @@
 */
 
 #ifndef POLL_HPP_
-    #define POLL_HPP_
-    #include <poll.h>
-    #include "Error.hpp"
+#define POLL_HPP_
+#include <poll.h>
+#include "Exceptions.hpp"
 
 namespace ftp
 {
     class Server;
 
-    class Poll {
-        public:
-            Poll();
-            ~Poll() = default;
+    class Poll
+    {
+    public:
+        Poll();
+        ~Poll() = default;
 
-            int getRet() const { return _ret; }
-            int pollAction(Server &s, struct pollfd *fds, nfds_t nfds, int timeout);
+        int getRet() const { return _ret; }
+        int pollAction(Server &s, struct pollfd *fds, nfds_t nfds, int timeout);
 
-        private:
-            int _ret;
+    private:
+        int _ret;
     };
 
 } // namespace ftp
