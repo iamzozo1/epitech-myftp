@@ -15,12 +15,14 @@
     #include <arpa/inet.h>
     #include <memory>
     #include <vector>
+    #include <unordered_map>
 
     #include "wrapped/Socket.hpp"
     #include "ClientData.hpp"
     #include "wrapped/Poll.hpp"
 
     #define LISTEN_BACKLOG 10000
+    #define COMMAND_SIZE 4
 
 namespace ftp
 {
@@ -36,6 +38,7 @@ namespace ftp
             void handleClients();
             void updateFdsAfterPoll(struct pollfd *);
             static void setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr);
+            CommandName getClientCommand(std::string buffer) const;
 
         protected:
         private:

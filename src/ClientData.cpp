@@ -10,7 +10,7 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd)
+    ClientData::ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _user("")
     {
     }
 
@@ -77,9 +77,20 @@ namespace ftp
         _socket->write("226 Transfer complete. Closing data connection\r\n");
     }
 
+    std::string ClientData::getCommandArg(std::string buffer) const
+    {
+        size_t pos = buffer.find_last_of(" \t", 4);
+
+        if (pos == std::string::npos || pos + 1 >= buffer.size())
+            throw InvalidCommandError();
+        return buffer.substr(pos + 1);
+    }
+
     void ClientData::command(CommandName cmd, std::string buffer)
     {
-        char filepath[1024];
+        char filepath[BUFSIZ];
+        char readBuffer[BUFSIZ] = {0};
+        std::string arg;
 
         if (cmd == RETR) {
             if (_dataSocket == nullptr) {
@@ -93,6 +104,9 @@ namespace ftp
                 _socket->write(e.what());
             }
             _dataSocket.reset();
+        } else if (cmd == USER) {
+            _user = getCommandArg(buffer);
+            _socket->write("331 User name okay, need password.");
         } else {
             throw InvalidCommandError();
         }
@@ -101,6 +115,11 @@ namespace ftp
     void ClientData::setPollFdAsRead()
     {
         _pollfd->revents = 0;
+    }
+
+    void ClientData::setUser(std::string user)
+    {
+        _user = user;
     }
 
 } // namespace ftp

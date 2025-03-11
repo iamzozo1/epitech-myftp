@@ -18,7 +18,21 @@
 namespace ftp
 {
     enum CommandName {
+        USER,
+        PASS,
+        CWD,
+        CDUP,
+        QUIT,
+        PORT,
+        PASV,
+        STOR,
         RETR,
+        LIST,
+        DELE,
+        PWD,
+        HELP,
+        NOOP,
+        UNKNOWN
     };
 
     class ClientData {
@@ -30,20 +44,24 @@ namespace ftp
 
             void setSocket(std::shared_ptr<Socket>);
             void setPollFd(struct pollfd &s);
+            void setPollFdAsRead();
+            void setUser(std::string user);
 
             std::shared_ptr<Socket> getSocket() const { return _socket; }
             std::shared_ptr<Socket> getDataSocket() const { return _dataSocket; }
             std::shared_ptr<struct pollfd> getPollFd() const { return _pollfd; }
-            void setPollFdAsRead();
+            std::string getUser() const { return _user; }
 
             void command(CommandName cmd, std::string buffer);
 
         private:
             void sendFile(const std::string& filepath);
+            std::string getCommandArg(std::string buffer) const;
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;
             std::shared_ptr<struct pollfd> _pollfd;
+            std::string _user;
     };
 } // namespace ftp
 

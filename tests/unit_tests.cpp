@@ -7,31 +7,32 @@
 
 #include <criterion/criterion.h>
 #include "Server.hpp"
+// #include "ClientData.hpp"
+// #include "wrapped/Socket.hpp"
 
 Test(Server, creation)
 {
-    printf("before test creat\n");
-    ftp::Server server;
+    ftp::Server server(3000, ".");
 
     cr_assert_not_null(&server, "Server instance should not be null");
 }
 
-Test(Server, socket_initialization)
+Test(ClientData, command_USER)
 {
-    printf("before test init\n");
-    ftp::Server server;
+    try {
+        std::shared_ptr<struct pollfd> pollfd = std::make_shared<struct pollfd>();
+        std::shared_ptr<ftp::Socket> socket = std::make_shared<ftp::Socket>(AF_INET, SOCK_STREAM, 0);
+        ftp::ClientData clientData(pollfd, socket);
 
-    int fd = server.getSocketFd();
-    cr_assert_neq(fd, -1, "Socket file descriptor should not be -1");
-}
+        std::string buffer = "USER testuser";
+        clientData.command(ftp::USER, buffer);
 
-Test(Server, address_initialization)
-{
-    printf("before test adder\n");
-    ftp::Server server;
+        std::string expectedUser = "testuser";
+        std::string actualUser = clientData.getUser();
 
-    struct sockaddr_in address = server.getAddress();
-    cr_assert_eq(address.sin_family, AF_INET, "Address family should be AF_INET");
-    cr_assert_eq(address.sin_port, htons(PORT), "Port should be set to defined PORT");
-    cr_assert_eq(address.sin_addr.s_addr, INADDR_ANY, "Address should be set to INADDR_ANY");
+        cr_assert_eq(actualUser, expectedUser, "Expected user to be '%s', but got '%s'", expectedUser.c_str(), actualUser.c_str());
+    } catch(const std::exception& e) {
+        std::cerr << e.what() << '\n';
+        cr_assert_fail("Caught an exception");
+    }
 }

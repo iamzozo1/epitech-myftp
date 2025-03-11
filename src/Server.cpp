@@ -9,6 +9,36 @@
 
 namespace ftp
 {
+    CommandName Server::getClientCommand(std::string buffer) const
+    {
+        if (buffer.empty() || buffer.size() < COMMAND_SIZE)
+            return UNKNOWN;
+
+        std::string cmd = buffer.substr(0, 4);
+        std::unordered_map<std::string, CommandName> commandsMap;
+
+        commandsMap["PASV"] = PASV;
+        commandsMap["USER"] = USER;
+        commandsMap["PASS"] = PASS;
+        commandsMap["CWD "] = CWD;
+        commandsMap["CDUP"] = CDUP;
+        commandsMap["QUIT"] = QUIT;
+        commandsMap["PORT"] = PORT;
+        commandsMap["PASV"] = PASV;
+        commandsMap["STOR"] = STOR;
+        commandsMap["RETR"] = RETR;
+        commandsMap["LIST"] = LIST;
+        commandsMap["DELE"] = DELE;
+        commandsMap["PWD "] = PWD;
+        commandsMap["HELP"] = HELP;
+        commandsMap["NOOP"] = NOOP;
+
+        auto it = commandsMap.find(cmd);
+        if (it != commandsMap.end())
+            return it->second;
+        return UNKNOWN;
+    }
+
     void Server::setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr)
     {
         address.sin_family = family;
@@ -34,6 +64,7 @@ namespace ftp
         ClientData newClient = ClientData(std::make_shared<struct pollfd>(newPollFd), newClientSocket, nullptr);
 
         _clients.push_back(newClient);
+        newClient.getSocket()->write("220 Connected successfully to Enzo's FTP Server.\r\n");
     }
 
     void Server::handleClient(ClientData &client)
@@ -41,24 +72,26 @@ namespace ftp
         char buffer[BUFSIZ] = {0};
         std::shared_ptr<Socket> socket = client.getSocket();
         ssize_t bytes;
+        CommandName cmd;
 
         bytes = socket->read(buffer, sizeof(buffer) - 1);
         if (bytes <= 0)
             return;
         buffer[bytes - 1] = '\0';
+        cmd = getClientCommand(buffer);
 
-        if (strncmp(buffer, "PASV", 4) == 0) {
+        if (cmd == UNKNOWN) {
+            socket->write("500 Unknown command.\r\n");
+        } else if (cmd == PASV) {
             client.openDataSocket();
-        } else if (strncmp(buffer, "RETR ", 5) == 0) {
-            try {
-                client.command(RETR, buffer);
-            } catch(const std::exception& e) {
-                socket->write(e.what());
-            }
         } else if (strncmp(buffer, "QUIT", 4) == 0) {
             socket->write("221 Goodbye.\r\n");
         } else {
-            socket->write("500 Unknown command.\r\n");
+            try {
+                client.command(cmd, buffer);
+            } catch(const std::exception& e) {
+                socket->write(e.what());
+            }
         }
     }
 
