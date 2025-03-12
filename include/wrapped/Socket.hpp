@@ -31,6 +31,7 @@ namespace ftp
         void listen(int backlog);
         ssize_t write(std::string buf);
         ssize_t read(char *buf, size_t count);
+        void connect();
 
         int _fd;
 

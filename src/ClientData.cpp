@@ -226,6 +226,31 @@ namespace ftp
         _socket->write("250 Requested file action okay, completed.");
     }
 
+    void ClientData::connectToPort(std::string buffer)
+    {
+        int h1, h2, h3, h4, p1, p2;
+
+        if (sscanf(buffer.c_str(), "%d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1, &p2) != 6) {
+            _socket->write("501 Syntax error in parameters or arguments.");
+            return;
+        }
+
+        std::string ipAddress = std::to_string(h1) + "." + std::to_string(h2) + "." + std::to_string(h3) + "." + std::to_string(h4);
+        int port = p1 * 256 + p2;
+
+        if (_dataSocket != nullptr) {
+            _dataSocket.reset();
+        }
+
+        _dataSocket = std::make_shared<Socket>(AF_INET, SOCK_STREAM, 0);
+        struct sockaddr_in client_addr;
+        memset(&client_addr, 0, sizeof(client_addr));
+        Server::setAddress(client_addr, AF_INET, port, inet_addr(ipAddress.c_str()));
+        _dataSocket->setSockAddress((struct sockaddr *)&client_addr, sizeof(client_addr));
+        _dataSocket->connect();
+        _socket->write("200 PORT command successful.");
+    }
+
     void ClientData::command(CommandName cmd, std::string buffer)
     {
         char readBuffer[BUFSIZ] = {0};
@@ -261,6 +286,8 @@ namespace ftp
             throw ConnectionClosed();
         } else if (cmd == PASV) {
             openDataSocket();
+        } else if (cmd == PORT) {
+            connectToPort(getCommandArg(buffer));
         } else if (cmd == SYST) {
             _socket->write("215 UNIX Type: L8");
         } else if (cmd == TYPE || cmd == NOOP) {

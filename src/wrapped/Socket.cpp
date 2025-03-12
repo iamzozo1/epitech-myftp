@@ -98,4 +98,10 @@ namespace ftp
             throw ReadError();
         return bytesRead;
     }
+
+    void Socket::connect()
+    {
+        if (::connect(_fd, _addr, _addrlen) == ERROR)
+            throw ConnectError();
+    }
 } // namespace ftp

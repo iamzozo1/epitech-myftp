@@ -72,6 +72,7 @@ namespace ftp
             void downloadFile(std::string buffer);
             void writeNewFile(std::string filename);
             void deleteFile(std::string filename);
+            void connectToPort(std::string buffer);
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;

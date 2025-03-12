@@ -97,6 +97,17 @@ namespace ftp
             std::string _message;
     };
 
+    class ConnectError : public std::exception {
+        public:
+            ConnectError() {
+                _message = "Connect failed: ";
+                _message += + std::strerror(errno);
+            };
+            const char* what() const noexcept override;
+        private:
+            std::string _message;
+    };
+
 } // namespace ftp
 
 
