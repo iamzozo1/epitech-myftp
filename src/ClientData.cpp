@@ -72,6 +72,7 @@ namespace ftp
             throw FileOpenError();
         }
         _socket->write("150 File status okay; about to open data connection.");
+        _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
 
         while (file) {
             file.read(buffer, sizeof(buffer));
@@ -83,7 +84,6 @@ namespace ftp
             }
         }
         file.close();
-        _socket->write("Closing data connection.");
     }
 
     std::string ClientData::getCommandArg(std::string buffer) const
@@ -92,7 +92,12 @@ namespace ftp
 
         if (pos == std::string::npos || pos + 1 >= buffer.size())
             throw InvalidCommandError();
-        return buffer.substr(pos + 1);
+        std::string arg = buffer.substr(pos + 1);
+
+        while (!arg.empty() && (arg.back() == '\r' || arg.back() == '\n' || arg.back() == ' ' || arg.back() == '\t')) {
+            arg.pop_back();
+        }
+        return arg;
     }
 
     std::string ClientData::getNewPath(std::string buffer) const
@@ -190,7 +195,7 @@ namespace ftp
             throw DataSocketNullError();
         }
         sscanf(buffer.c_str(), "RETR %s", filepath);
-        _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
+
         try {
             sendFile(getNewPath(filepath));
         } catch(const std::exception& e) {
@@ -236,6 +241,8 @@ namespace ftp
             openDataSocket();
         } else if (cmd == SYST) {
             _socket->write("215 UNIX Type: L8");
+        } else if (cmd == TYPE) {
+            _socket->write("200 Command okay.");
         } else if (cmd == LIST) {
             try {
                 arg = getCommandArg(buffer);

@@ -36,6 +36,7 @@ namespace ftp
         HELP,
         NOOP,
         SYST,
+        TYPE,
         UNKNOWN
     };
 

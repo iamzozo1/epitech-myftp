@@ -38,6 +38,7 @@ namespace ftp
         commandsMap["HELP"] = HELP;
         commandsMap["NOOP"] = NOOP;
         commandsMap["SYST"] = SYST;
+        commandsMap["TYPE"] = TYPE;
 
         auto it = commandsMap.find(cmd);
         if (it != commandsMap.end())
@@ -92,6 +93,7 @@ namespace ftp
             return;
         buffer[bytes - 1] = '\0';
         cmd = getClientCommand(buffer);
+        std::cerr << buffer << std::endl;
 
         try {
             client.command(cmd, buffer);
