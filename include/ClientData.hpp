@@ -35,6 +35,7 @@ namespace ftp
         PWD,
         HELP,
         NOOP,
+        SYST,
         UNKNOWN
     };
 

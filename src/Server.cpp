@@ -12,7 +12,7 @@ namespace ftp
     CommandName Server::getClientCommand(std::string buffer) const
     {
         std::string cmd;
-        size_t pos = buffer.find_first_of(" \n\0\t");
+        size_t pos = buffer.find_first_of(" \r\n\0\t");
         std::unordered_map<std::string, CommandName> commandsMap;
 
         if (buffer.empty())
@@ -30,7 +30,6 @@ namespace ftp
         commandsMap["CDUP"] = CDUP;
         commandsMap["QUIT"] = QUIT;
         commandsMap["PORT"] = PORT;
-        commandsMap["PASV"] = PASV;
         commandsMap["STOR"] = STOR;
         commandsMap["RETR"] = RETR;
         commandsMap["LIST"] = LIST;
@@ -38,6 +37,7 @@ namespace ftp
         commandsMap["PWD"] = PWD;
         commandsMap["HELP"] = HELP;
         commandsMap["NOOP"] = NOOP;
+        commandsMap["SYST"] = SYST;
 
         auto it = commandsMap.find(cmd);
         if (it != commandsMap.end())
@@ -110,7 +110,10 @@ namespace ftp
                 _clients[i - 1].setPollFd(_fds[i]);
                 try {
                     handleClient(_clients[i - 1]);
+                    _fds[i].revents = 0;
                 } catch(const ConnectionClosed& e) {
+                    closeClientConnection(i);
+                } catch(const ReadError& e) {
                     closeClientConnection(i);
                 }
             }

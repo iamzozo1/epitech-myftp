@@ -192,7 +192,7 @@ namespace ftp
         sscanf(buffer.c_str(), "RETR %s", filepath);
         _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
         try {
-            sendFile(filepath);
+            sendFile(getNewPath(filepath));
         } catch(const std::exception& e) {
             _socket->write(e.what());
         }
@@ -234,6 +234,8 @@ namespace ftp
             throw ConnectionClosed();
         } else if (cmd == PASV) {
             openDataSocket();
+        } else if (cmd == SYST) {
+            _socket->write("215 UNIX Type: L8");
         } else if (cmd == LIST) {
             try {
                 arg = getCommandArg(buffer);
