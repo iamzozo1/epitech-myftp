@@ -49,6 +49,11 @@ const char* AcceptError::what() const noexcept
     return _message.c_str();
 }
 
+const char* RemoveError::what() const noexcept
+{
+    return _message.c_str();
+}
+
 const char* ConnectionClosed::what() const noexcept
 {
     return "221 Service closing control connection.";

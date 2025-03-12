@@ -12,11 +12,14 @@
     #include <string>
     #include <poll.h>
     #include <fstream>
+    #include <iostream>
     #include <arpa/inet.h>
+    #include <stdio.h>
     #include "wrapped/Socket.hpp"
 
     #define PERMISSION_NUMBER 10
     #define TIME_STRING_SIZE 80
+    #define END_OF_READ 0
 
 namespace ftp
 {
@@ -67,6 +70,8 @@ namespace ftp
             std::string getNewPath(std::string buffer) const;
             void closeDataSocket();
             void downloadFile(std::string buffer);
+            void writeNewFile(std::string filename);
+            void deleteFile(std::string filename);
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;

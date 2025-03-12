@@ -86,6 +86,17 @@ namespace ftp
             std::string _message;
     };
 
+    class RemoveError : public std::exception {
+        public:
+            RemoveError() {
+                _message = "Remove failed: ";
+                _message += + std::strerror(errno);
+            };
+            const char* what() const noexcept override;
+        private:
+            std::string _message;
+    };
+
 } // namespace ftp
 
 

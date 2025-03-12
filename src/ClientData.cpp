@@ -204,6 +204,28 @@ namespace ftp
         closeDataSocket();
     }
 
+    void ClientData::writeNewFile(std::string filename)
+    {
+        std::ofstream file(getNewPath(filename));
+        char fileContent[BUFSIZ];
+
+        _socket->write("150 File status okay; about to open data connection.");
+        _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
+
+        while (_dataSocket->read(fileContent, sizeof(fileContent)) != END_OF_READ)
+            file << fileContent;
+
+        file.close();
+        closeDataSocket();
+    }
+
+    void ClientData::deleteFile(std::string filename)
+    {
+        if (remove(getNewPath(filename).c_str()) == ERROR)
+            throw RemoveError();
+        _socket->write("250 Requested file action okay, completed.");
+    }
+
     void ClientData::command(CommandName cmd, std::string buffer)
     {
         char readBuffer[BUFSIZ] = {0};
@@ -250,6 +272,16 @@ namespace ftp
                 arg = ".";
             }
             listDir(getNewPath(arg));
+        } else if (cmd == STOR) {
+            writeNewFile(getCommandArg(buffer));
+        } else if (cmd == DELE) {
+            try {
+                deleteFile(getCommandArg(buffer));
+            } catch(const RemoveError& e) {
+                std::cerr << e.what() << '\n';
+                _socket->write("550 Failed to remove file.");
+            }
+
         } else {
             throw InvalidCommandError();
         }
