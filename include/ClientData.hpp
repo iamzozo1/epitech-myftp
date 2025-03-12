@@ -45,7 +45,7 @@ namespace ftp
 
     class ClientData {
         public:
-            ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket = nullptr, std::shared_ptr<Socket> dataSocket = nullptr);
+            ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket = nullptr, std::shared_ptr<Socket> dataSocket = nullptr);
             ~ClientData() = default;
 
             void openDataSocket(void);

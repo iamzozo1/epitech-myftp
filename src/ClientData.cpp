@@ -13,7 +13,7 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _user(""), _path("/")
+    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _user(""), _path(homepath)
     {
     }
 
@@ -263,7 +263,7 @@ namespace ftp
             openDataSocket();
         } else if (cmd == SYST) {
             _socket->write("215 UNIX Type: L8");
-        } else if (cmd == TYPE) {
+        } else if (cmd == TYPE || cmd == NOOP) {
             _socket->write("200 Command okay.");
         } else if (cmd == LIST) {
             try {
@@ -281,7 +281,6 @@ namespace ftp
                 std::cerr << e.what() << '\n';
                 _socket->write("550 Failed to remove file.");
             }
-
         } else {
             throw InvalidCommandError();
         }

@@ -68,7 +68,7 @@ namespace ftp
         int newClientFd = _serverSocket->accept(NULL, NULL);
         std::shared_ptr<Socket> newClientSocket = std::make_shared<Socket>(newClientFd);
         struct pollfd newPollFd = addFdToServer(newClientSocket->_fd);
-        ClientData newClient = ClientData(std::make_shared<struct pollfd>(newPollFd), newClientSocket, nullptr);
+        ClientData newClient = ClientData(_homePath, std::make_shared<struct pollfd>(newPollFd), newClientSocket, nullptr);
 
         _clients.push_back(newClient);
 
