@@ -60,9 +60,11 @@ namespace ftp
         private:
             void sendFile(const std::string& filepath);
             bool changeWorkingDirectory(std::string arg);
-            void listDir(const std::string& path) const;
+            void listDir(const std::string& path);
             std::string getCommandArg(std::string buffer) const;
             std::string getNewPath(std::string buffer) const;
+            void closeDataSocket();
+            void downloadFile(std::string buffer);
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;

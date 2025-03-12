@@ -17,6 +17,12 @@ namespace ftp
     {
     }
 
+    void ClientData::closeDataSocket()
+    {
+        _socket->write("226 Closing data connection.");
+        _dataSocket.reset();
+    }
+
     void ClientData::setSocket(std::shared_ptr<Socket> socket)
     {
         if (socket == nullptr)
@@ -127,7 +133,7 @@ namespace ftp
         return false;
     }
 
-    void ClientData::listDir(const std::string& path) const
+    void ClientData::listDir(const std::string& path)
     {
         if (_dataSocket == nullptr) {
             throw DataSocketNullError();
@@ -149,50 +155,57 @@ namespace ftp
             std::string fullpath = path.empty() ? _path + "/" + filename : path + "/" + filename;
 
             if (stat(fullpath.c_str(), &filestat) == 0) {
-            char perms[PERMISSION_NUMBER + 1] = {0};
-            char tstring[TIME_STRING_SIZE] = {0};
-            struct tm *time = localtime(&filestat.st_mtime);
+                char perms[PERMISSION_NUMBER + 1] = {0};
+                char tstring[TIME_STRING_SIZE] = {0};
+                struct tm *time = localtime(&filestat.st_mtime);
 
-            perms[0] = S_ISDIR(filestat.st_mode) ? 'd' : '-';
-            perms[1] = (filestat.st_mode & S_IRUSR) ? 'r' : '-';
-            perms[2] = (filestat.st_mode & S_IWUSR) ? 'w' : '-';
-            perms[3] = (filestat.st_mode & S_IXUSR) ? 'x' : '-';
-            perms[4] = (filestat.st_mode & S_IRGRP) ? 'r' : '-';
-            perms[5] = (filestat.st_mode & S_IWGRP) ? 'w' : '-';
-            perms[6] = (filestat.st_mode & S_IXGRP) ? 'x' : '-';
-            perms[7] = (filestat.st_mode & S_IROTH) ? 'r' : '-';
-            perms[8] = (filestat.st_mode & S_IWOTH) ? 'w' : '-';
-            perms[9] = (filestat.st_mode & S_IXOTH) ? 'x' : '-';
+                perms[0] = S_ISDIR(filestat.st_mode) ? 'd' : '-';
+                perms[1] = (filestat.st_mode & S_IRUSR) ? 'r' : '-';
+                perms[2] = (filestat.st_mode & S_IWUSR) ? 'w' : '-';
+                perms[3] = (filestat.st_mode & S_IXUSR) ? 'x' : '-';
+                perms[4] = (filestat.st_mode & S_IRGRP) ? 'r' : '-';
+                perms[5] = (filestat.st_mode & S_IWGRP) ? 'w' : '-';
+                perms[6] = (filestat.st_mode & S_IXGRP) ? 'x' : '-';
+                perms[7] = (filestat.st_mode & S_IROTH) ? 'r' : '-';
+                perms[8] = (filestat.st_mode & S_IWOTH) ? 'w' : '-';
+                perms[9] = (filestat.st_mode & S_IXOTH) ? 'x' : '-';
 
-            strftime(tstring, sizeof(tstring), "%b %d %H:%M", time);
+                strftime(tstring, sizeof(tstring), "%b %d %H:%M", time);
 
-            char buffer[BUFSIZ];
-            snprintf(buffer, sizeof(buffer), "%s 1 user group %8ld %s %s\r\n", perms, (long)filestat.st_size, tstring, el->d_name);
-            listing += buffer;
+                char buffer[BUFSIZ];
+                snprintf(buffer, sizeof(buffer), "%s 1 user group %8ld %s %s\r\n", perms, (long)filestat.st_size, tstring, el->d_name);
+                listing += buffer;
             }
         }
         transferSocket->write(listing);
+        closeDataSocket();
         closedir(dir);
+    }
+
+    void ClientData::downloadFile(std::string buffer)
+    {
+        char filepath[BUFSIZ];
+
+        if (_dataSocket == nullptr) {
+            throw DataSocketNullError();
+        }
+        sscanf(buffer.c_str(), "RETR %s", filepath);
+        _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
+        try {
+            sendFile(filepath);
+        } catch(const std::exception& e) {
+            _socket->write(e.what());
+        }
+        closeDataSocket();
     }
 
     void ClientData::command(CommandName cmd, std::string buffer)
     {
-        char filepath[BUFSIZ];
         char readBuffer[BUFSIZ] = {0};
         std::string arg;
 
         if (cmd == RETR) {
-            if (_dataSocket == nullptr) {
-                throw DataSocketNullError();
-            }
-            sscanf(buffer.c_str(), "RETR %s", filepath);
-            _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
-            try {
-                sendFile(filepath);
-            } catch(const std::exception& e) {
-                _socket->write(e.what());
-            }
-            _dataSocket.reset();
+            downloadFile(buffer);
         } else if (cmd == USER) {
             _user = getCommandArg(buffer);
             _socket->write("331 User name okay, need password.");
