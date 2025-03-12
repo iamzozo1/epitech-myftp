@@ -15,6 +15,9 @@
     #include <arpa/inet.h>
     #include "wrapped/Socket.hpp"
 
+    #define PERMISSION_NUMBER 10
+    #define TIME_STRING_SIZE 80
+
 namespace ftp
 {
     enum CommandName {

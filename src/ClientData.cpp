@@ -129,49 +129,50 @@ namespace ftp
 
     void ClientData::listDir(const std::string& path) const
     {
-        struct dirent *entry;
+        if (_dataSocket == nullptr) {
+            throw DataSocketNullError();
+        }
+        struct dirent *el;
         DIR *dir = opendir(path.empty() ? _path.c_str() : path.c_str());
 
         if (dir == NULL) {
             _socket->write("550 Failed to open directory.");
             return;
         }
+        _socket->write("150 File status okay; about to open data connection.");
+        std::unique_ptr<Socket> transferSocket = std::make_unique<Socket>(_dataSocket->accept(NULL, NULL));
 
-        _socket->write("150 Here comes the directory listing.");
-        _dataSocket->accept(NULL, NULL);
-
-        while ((entry = readdir(dir)) != NULL) {
-            std::string filename = entry->d_name;
+        std::string listing;
+        while ((el = readdir(dir)) != NULL) {
+            std::string filename = el->d_name;
             struct stat filestat;
             std::string fullpath = path.empty() ? _path + "/" + filename : path + "/" + filename;
 
             if (stat(fullpath.c_str(), &filestat) == 0) {
-                char perms[11] = {0};
-                char tstring[80] = {0};
-                struct tm *time = localtime(&filestat.st_mtime);
+            char perms[PERMISSION_NUMBER + 1] = {0};
+            char tstring[TIME_STRING_SIZE] = {0};
+            struct tm *time = localtime(&filestat.st_mtime);
 
-                perms[0] = S_ISDIR(filestat.st_mode) ? 'd' : '-';
-                perms[1] = (filestat.st_mode & S_IRUSR) ? 'r' : '-';
-                perms[2] = (filestat.st_mode & S_IWUSR) ? 'w' : '-';
-                perms[3] = (filestat.st_mode & S_IXUSR) ? 'x' : '-';
-                perms[4] = (filestat.st_mode & S_IRGRP) ? 'r' : '-';
-                perms[5] = (filestat.st_mode & S_IWGRP) ? 'w' : '-';
-                perms[6] = (filestat.st_mode & S_IXGRP) ? 'x' : '-';
-                perms[7] = (filestat.st_mode & S_IROTH) ? 'r' : '-';
-                perms[8] = (filestat.st_mode & S_IWOTH) ? 'w' : '-';
-                perms[9] = (filestat.st_mode & S_IXOTH) ? 'x' : '-';
+            perms[0] = S_ISDIR(filestat.st_mode) ? 'd' : '-';
+            perms[1] = (filestat.st_mode & S_IRUSR) ? 'r' : '-';
+            perms[2] = (filestat.st_mode & S_IWUSR) ? 'w' : '-';
+            perms[3] = (filestat.st_mode & S_IXUSR) ? 'x' : '-';
+            perms[4] = (filestat.st_mode & S_IRGRP) ? 'r' : '-';
+            perms[5] = (filestat.st_mode & S_IWGRP) ? 'w' : '-';
+            perms[6] = (filestat.st_mode & S_IXGRP) ? 'x' : '-';
+            perms[7] = (filestat.st_mode & S_IROTH) ? 'r' : '-';
+            perms[8] = (filestat.st_mode & S_IWOTH) ? 'w' : '-';
+            perms[9] = (filestat.st_mode & S_IXOTH) ? 'x' : '-';
 
-                // Format time
-                strftime(tstring, sizeof(tstring), "%b %d %H:%M", time);
+            strftime(tstring, sizeof(tstring), "%b %d %H:%M", time);
 
-                char buffer[BUFSIZ];
-                snprintf(buffer, sizeof(buffer), "%s 1 user group %8ld %s %s\r\n",
-                    perms, (long)filestat.st_size, tstring, entry->d_name);
-                _dataSocket->write(buffer);
+            char buffer[BUFSIZ];
+            snprintf(buffer, sizeof(buffer), "%s 1 user group %8ld %s %s\r\n", perms, (long)filestat.st_size, tstring, el->d_name);
+            listing += buffer;
             }
         }
+        transferSocket->write(listing);
         closedir(dir);
-        _socket->write("150 File status okay; about to open data connection.");
     }
 
     void ClientData::command(CommandName cmd, std::string buffer)
@@ -185,7 +186,7 @@ namespace ftp
                 throw DataSocketNullError();
             }
             sscanf(buffer.c_str(), "RETR %s", filepath);
-            _dataSocket->accept(NULL, NULL);
+            _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
             try {
                 sendFile(filepath);
             } catch(const std::exception& e) {
@@ -220,13 +221,13 @@ namespace ftp
             throw ConnectionClosed();
         } else if (cmd == PASV) {
             openDataSocket();
-        // } else if (cmd == LIST) {
-        //     try {
-        //         arg = getCommandArg(buffer);
-        //     } catch(const InvalidCommandError &e) {
-        //         arg = ".";
-        //     }
-        //     listDir(getNewPath(arg));
+        } else if (cmd == LIST) {
+            try {
+                arg = getCommandArg(buffer);
+            } catch(const InvalidCommandError &e) {
+                arg = ".";
+            }
+            listDir(getNewPath(arg));
         } else {
             throw InvalidCommandError();
         }

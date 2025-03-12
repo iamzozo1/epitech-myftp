@@ -34,6 +34,21 @@ const char* InvalidCommandError::what() const noexcept
     return "500 Syntax error, command unrecognized. This may include errors such as command line too long.";
 }
 
+const char* ReadError::what() const noexcept
+{
+    return _message.c_str();
+}
+
+const char* WriteError::what() const noexcept
+{
+    return _message.c_str();
+}
+
+const char* AcceptError::what() const noexcept
+{
+    return _message.c_str();
+}
+
 const char* ConnectionClosed::what() const noexcept
 {
     return "221 Service closing control connection.";

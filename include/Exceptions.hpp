@@ -53,6 +53,39 @@ namespace ftp
             const char* what() const noexcept override;
     };
 
+    class ReadError : public std::exception {
+        public:
+            ReadError() {
+                _message = "Read failed: ";
+                _message += + std::strerror(errno);
+            };
+            const char* what() const noexcept override;
+        private:
+            std::string _message;
+    };
+
+    class WriteError : public std::exception {
+        public:
+            WriteError() {
+                _message = "Write failed: ";
+                _message += + std::strerror(errno);
+            };
+            const char* what() const noexcept override;
+        private:
+            std::string _message;
+    };
+
+    class AcceptError : public std::exception {
+        public:
+            AcceptError() {
+                _message = "Accept failed: ";
+                _message += + std::strerror(errno);
+            };
+            const char* what() const noexcept override;
+        private:
+            std::string _message;
+    };
+
 } // namespace ftp
 
 

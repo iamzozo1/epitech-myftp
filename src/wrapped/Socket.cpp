@@ -51,7 +51,7 @@ namespace ftp
         int ret = ::accept(_fd, addr, addrlen);
 
         if (ret == ERROR)
-            throw Error("Accept failed");
+            throw AcceptError();
         return ret;
     }
 
@@ -83,7 +83,7 @@ namespace ftp
         size = buf.size();
         bytesWritten = ::write(_fd, buf.c_str(), size);
         if (bytesWritten == ERROR)
-            throw Error("Error: Socket::write failed");
+            throw WriteError();
         return bytesWritten;
     }
 
@@ -95,7 +95,7 @@ namespace ftp
             return 0;
         bytesRead = ::read(_fd, buf, count);
         if (bytesRead == ERROR)
-            throw Error("Error: Socket::read failed");
+            throw ReadError();
         return bytesRead;
     }
 } // namespace ftp
