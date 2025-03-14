@@ -12,6 +12,7 @@
     #include <string>
     #include <poll.h>
     #include <fstream>
+    #include <functional>
     #include <iostream>
     #include <arpa/inet.h>
     #include <stdio.h>
@@ -48,8 +49,6 @@ namespace ftp
             ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket = nullptr, std::shared_ptr<Socket> dataSocket = nullptr);
             ~ClientData() = default;
 
-            void openDataSocket(void);
-
             void setSocket(std::shared_ptr<Socket>);
             void setPollFd(struct pollfd &s);
             void setPollFdAsRead();
@@ -60,12 +59,14 @@ namespace ftp
             std::shared_ptr<struct pollfd> getPollFd() const { return _pollfd; }
             std::string getUser() const { return _user; }
 
-            void command(CommandName cmd, std::string buffer);
+            void command(std::string cmd, std::string buffer);
 
         private:
+            void openDataSocket(std::string buffer);
             void sendFile(const std::string& filepath);
-            bool changeWorkingDirectory(std::string arg);
-            void listDir(const std::string& path);
+            void changeWorkingDirectory(std::string buffer);
+            void changeWorkingDirectoryUp(std::string buffer);
+            void listDir(std::string buffer);
             std::string getCommandArg(std::string buffer) const;
             std::string getNewPath(std::string buffer) const;
             void closeDataSocket();
@@ -73,6 +74,13 @@ namespace ftp
             void writeNewFile(std::string filename);
             void deleteFile(std::string filename);
             void connectToPort(std::string buffer);
+            void connectUser(std::string buffer);
+            void enterUserPassword(std::string buffer);
+            void chdir(std::string newPath);
+            void pwd(std::string buffer);
+            void quit(std::string buffer);
+            void syst(std::string buffer);
+            void successCommand(std::string buffer);
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;

@@ -51,7 +51,7 @@ RM	=	rm -f
 all:	$(NAME)
 
 $(NAME):	$(OBJ) $(MAIN_OBJ)
-	$(CC) -o $(NAME) $(OBJ) $(MAIN_OBJ) $(LDFLAGS) $(LDLIBS)
+	$(CC) -o $(NAME) $(OBJ) $(MAIN_OBJ)
 
 clean:
 	$(RM) $(OBJ)
@@ -67,7 +67,7 @@ fclean:	clean
 
 re:	fclean all
 
-valgrind: CFLAGS += -g3
+valgrind: CPPFLAGS += -g3
 valgrind: re
 
 asan:	CC	=	clang -fsanitize=address

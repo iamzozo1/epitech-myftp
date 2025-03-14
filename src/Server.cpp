@@ -9,41 +9,19 @@
 
 namespace ftp
 {
-    CommandName Server::getClientCommand(std::string buffer) const
+    std::string Server::getClientCommand(std::string buffer) const
     {
         std::string cmd;
         size_t pos = buffer.find_first_of(" \r\n\0\t");
-        std::unordered_map<std::string, CommandName> commandsMap;
 
         if (buffer.empty())
-            return UNKNOWN;
+            return buffer;
         if (pos != std::string::npos) {
             cmd = buffer.substr(0, pos);
         } else {
             cmd = buffer;
         }
-
-        commandsMap["PASV"] = PASV;
-        commandsMap["USER"] = USER;
-        commandsMap["PASS"] = PASS;
-        commandsMap["CWD"] = CWD;
-        commandsMap["CDUP"] = CDUP;
-        commandsMap["QUIT"] = QUIT;
-        commandsMap["PORT"] = PORT;
-        commandsMap["STOR"] = STOR;
-        commandsMap["RETR"] = RETR;
-        commandsMap["LIST"] = LIST;
-        commandsMap["DELE"] = DELE;
-        commandsMap["PWD"] = PWD;
-        commandsMap["HELP"] = HELP;
-        commandsMap["NOOP"] = NOOP;
-        commandsMap["SYST"] = SYST;
-        commandsMap["TYPE"] = TYPE;
-
-        auto it = commandsMap.find(cmd);
-        if (it != commandsMap.end())
-            return it->second;
-        return UNKNOWN;
+        return cmd;
     }
 
     void Server::setAddress(struct sockaddr_in &address, int family, u_int16_t port, in_addr_t s_addr)
@@ -86,7 +64,7 @@ namespace ftp
         char buffer[BUFSIZ] = {0};
         std::shared_ptr<Socket> socket = client.getSocket();
         ssize_t bytes;
-        CommandName cmd;
+        std::string cmd;
 
         bytes = socket->read(buffer, sizeof(buffer) - 1);
         if (bytes <= 0)
@@ -97,10 +75,10 @@ namespace ftp
 
         try {
             client.command(cmd, buffer);
-        } catch(const ConnectionClosed& e) {
+        } catch (const ConnectionClosed &e) {
             socket->write(e.what());
             throw ConnectionClosed();
-        } catch(const std::exception& e) {
+        } catch (const std::exception &e) {
             socket->write(e.what());
         }
     }
@@ -113,9 +91,9 @@ namespace ftp
                 try {
                     handleClient(_clients[i - 1]);
                     _fds[i].revents = 0;
-                } catch(const ConnectionClosed& e) {
+                } catch (const ConnectionClosed &e) {
                     closeClientConnection(i);
-                } catch(const ReadError& e) {
+                } catch (const ReadError &e) {
                     closeClientConnection(i);
                 }
             }

@@ -13,9 +13,8 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _user(""), _path(homepath)
-    {
-    }
+    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _path(homepath), _user("")
+    {}
 
     void ClientData::closeDataSocket()
     {
@@ -35,8 +34,9 @@ namespace ftp
         _pollfd = std::make_shared<struct pollfd>(p);
     }
 
-    void ClientData::openDataSocket(void)
+    void ClientData::openDataSocket(std::string buffer)
     {
+        (void)buffer;
         if (_socket == nullptr)
             throw Error("No control connection");
 
@@ -53,7 +53,7 @@ namespace ftp
 
         struct sockaddr_in addr;
         socklen_t len = sizeof(addr);
-        if (getsockname(_dataSocket->_fd, (struct sockaddr*)&addr, &len) == ERROR)
+        if (getsockname(_dataSocket->_fd, (struct sockaddr *)&addr, &len) == ERROR)
             throw Error("getsockname failed");
 
         int port = ntohs(addr.sin_port);
@@ -62,23 +62,27 @@ namespace ftp
         _socket->write(response);
     }
 
-    void ClientData::sendFile(const std::string& filepath)
+    void ClientData::sendFile(const std::string &filepath)
     {
         std::ifstream file(filepath, std::ios::binary);
         ssize_t bytesRead = 0;
         char buffer[BUFSIZ];
 
-        if (!file.is_open()) {
+        if (!file.is_open())
+        {
             throw FileOpenError();
         }
         _socket->write("150 File status okay; about to open data connection.");
         _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
 
-        while (file) {
+        while (file)
+        {
             file.read(buffer, sizeof(buffer));
             bytesRead = file.gcount();
-            if (bytesRead > 0) {
-                if (_dataSocket->write(buffer) <= 0) {
+            if (bytesRead > 0)
+            {
+                if (_dataSocket->write(buffer) <= 0)
+                {
                     throw DataSocketWriteError();
                 }
             }
@@ -91,10 +95,13 @@ namespace ftp
         size_t pos = buffer.find_last_of(" \t", COMMAND_SIZE);
 
         if (pos == std::string::npos || pos + 1 >= buffer.size())
+        {
             throw InvalidCommandError();
+        }
         std::string arg = buffer.substr(pos + 1);
 
-        while (!arg.empty() && (arg.back() == '\r' || arg.back() == '\n' || arg.back() == ' ' || arg.back() == '\t')) {
+        while (!arg.empty() && (arg.back() == '\r' || arg.back() == '\n' || arg.back() == ' ' || arg.back() == '\t'))
+        {
             arg.pop_back();
         }
         return arg;
@@ -104,20 +111,30 @@ namespace ftp
     {
         std::string newPath;
 
-        if (buffer[0] == '/') {
+        if (buffer[0] == '/')
+        {
             newPath = buffer;
-        } else if (buffer.compare("..") == 0) {
+        }
+        else if (buffer.compare("..") == 0)
+        {
             size_t lastSlash = _path.find_last_of('/');
-            if (lastSlash != std::string::npos && _path != "/") {
+            if (lastSlash != std::string::npos && _path != "/")
+            {
                 newPath = _path.substr(0, lastSlash);
                 if (newPath.empty())
                     newPath = "/";
-            } else {
+            }
+            else
+            {
                 newPath = _path;
             }
-        } else if (buffer.compare(".") == 0) {
+        }
+        else if (buffer.compare(".") == 0)
+        {
             return _path;
-        } else {
+        }
+        else
+        {
             if (_path.compare("/") == 0)
                 newPath = _path + buffer;
             else
@@ -126,20 +143,52 @@ namespace ftp
         return newPath;
     }
 
-    bool ClientData::changeWorkingDirectory(std::string arg)
+    void ClientData::changeWorkingDirectory(std::string buffer)
     {
-        std::string newPath = getNewPath(arg);
+        std::string newPath = getNewPath(getCommandArg(buffer));
 
-        if (chdir(newPath.c_str()) != ERROR) {
-            _path = newPath;
-            return true;
+        try
+        {
+            chdir(newPath);
+            _socket->write("250 Requested file action okay, completed.");
         }
-        _socket->write("550 Failed to change directory.");
-        return false;
+        catch (const ChdirError &e)
+        {
+            _socket->write("550 Failed to change directory.");
+        }
     }
 
-    void ClientData::listDir(const std::string& path)
+    void ClientData::changeWorkingDirectoryUp(std::string buffer)
     {
+        std::string newPath = getNewPath("..");
+
+        try {
+            chdir(newPath);
+            _socket->write("200 Command okay.");
+        } catch (const ChdirError &e) {
+            _socket->write("550 Failed to change directory.");
+        }
+    }
+
+    void ClientData::chdir(std::string newPath)
+    {
+        if (::chdir(newPath.c_str()) == ERROR) {
+            throw ChdirError();
+        }
+        _path = newPath;
+    }
+
+    void ClientData::listDir(std::string buffer)
+    {
+        std::string arg;
+        std::string path;
+
+        try {
+            arg = getCommandArg(buffer);
+        } catch (const InvalidCommandError &e) {
+            arg = ".";
+        }
+        path = getNewPath(arg);
         if (_dataSocket == nullptr) {
             throw DataSocketNullError();
         }
@@ -204,9 +253,9 @@ namespace ftp
         closeDataSocket();
     }
 
-    void ClientData::writeNewFile(std::string filename)
+    void ClientData::writeNewFile(std::string buffer)
     {
-        std::ofstream file(getNewPath(filename));
+        std::ofstream file(getNewPath(getCommandArg(buffer)));
         char fileContent[BUFSIZ];
 
         _socket->write("150 File status okay; about to open data connection.");
@@ -219,18 +268,24 @@ namespace ftp
         closeDataSocket();
     }
 
-    void ClientData::deleteFile(std::string filename)
+    void ClientData::deleteFile(std::string buffer)
     {
-        if (remove(getNewPath(filename).c_str()) == ERROR)
-            throw RemoveError();
-        _socket->write("250 Requested file action okay, completed.");
+        try {
+            if (remove(getNewPath(getCommandArg(buffer)).c_str()) == ERROR)
+                throw RemoveError();
+            _socket->write("250 Requested file action okay, completed.");
+        } catch (const RemoveError &e) {
+            std::cerr << e.what() << '\n';
+            _socket->write("550 Failed to remove file.");
+        }
     }
 
     void ClientData::connectToPort(std::string buffer)
     {
+        std::string address = getCommandArg(buffer);
         int h1, h2, h3, h4, p1, p2;
 
-        if (sscanf(buffer.c_str(), "%d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1, &p2) != 6) {
+        if (sscanf(address.c_str(), "%d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1, &p2) != 6) {
             _socket->write("501 Syntax error in parameters or arguments.");
             return;
         }
@@ -251,66 +306,78 @@ namespace ftp
         _socket->write("200 PORT command successful.");
     }
 
-    void ClientData::command(CommandName cmd, std::string buffer)
+    void ClientData::connectUser(std::string buffer)
     {
-        char readBuffer[BUFSIZ] = {0};
-        std::string arg;
+        _user = getCommandArg(buffer);
+        _socket->write("331 User name okay, need password.");
+    }
 
-        if (cmd == RETR) {
-            downloadFile(buffer);
-        } else if (cmd == USER) {
-            _user = getCommandArg(buffer);
-            _socket->write("331 User name okay, need password.");
-        } else if (cmd == PASS) {
-            if (_user.empty())
-                _socket->write("332 Need account for login.");
-            else {
-                try {
-                    _password = getCommandArg(buffer);
-                } catch(const InvalidCommandError &e) {
-                    _password = "";
-                }
-                _socket->write("230 User logged in, proceed.");
-            }
-        } else if (cmd == CWD) {
-            if (changeWorkingDirectory(getCommandArg(buffer))) {
-                _socket->write("250 Requested file action okay, completed.");
-            }
-        } else if (cmd == CDUP) {
-            if (changeWorkingDirectory("..")) {
-                _socket->write("200 Command okay.");
-            }
-        } else if (cmd == PWD) {
-            _socket->write(_path);
-        } else if (cmd == QUIT) {
-            throw ConnectionClosed();
-        } else if (cmd == PASV) {
-            openDataSocket();
-        } else if (cmd == PORT) {
-            connectToPort(getCommandArg(buffer));
-        } else if (cmd == SYST) {
-            _socket->write("215 UNIX Type: L8");
-        } else if (cmd == TYPE || cmd == NOOP) {
-            _socket->write("200 Command okay.");
-        } else if (cmd == LIST) {
+    void ClientData::enterUserPassword(std::string buffer)
+    {
+        if (_user.empty())
+            _socket->write("332 Need account for login.");
+        else {
             try {
-                arg = getCommandArg(buffer);
-            } catch(const InvalidCommandError &e) {
-                arg = ".";
+                _password = getCommandArg(buffer);
+            } catch (const InvalidCommandError &e) {
+                _password = "";
             }
-            listDir(getNewPath(arg));
-        } else if (cmd == STOR) {
-            writeNewFile(getCommandArg(buffer));
-        } else if (cmd == DELE) {
-            try {
-                deleteFile(getCommandArg(buffer));
-            } catch(const RemoveError& e) {
-                std::cerr << e.what() << '\n';
-                _socket->write("550 Failed to remove file.");
-            }
-        } else {
-            throw InvalidCommandError();
+            _socket->write("230 User logged in, proceed.");
         }
+    }
+
+    void ClientData::pwd(std::string buffer)
+    {
+        (void)buffer;
+        _socket->write(_path);
+    }
+
+    void ClientData::quit(std::string buffer)
+    {
+        (void)buffer;
+        throw ConnectionClosed();
+    }
+
+    void ClientData::syst(std::string buffer)
+    {
+        (void)buffer;
+        _socket->write("215 UNIX Type: L8");
+    }
+
+    void ClientData::successCommand(std::string buffer)
+    {
+        (void)buffer;
+        _socket->write("200 Command okay.");
+    }
+
+    void ClientData::command(std::string cmd, std::string buffer)
+    {
+        std::unordered_map<std::string, std::function<void(std::string)>> commandMap;
+
+        commandMap["USER"] = [this](std::string buffer) { connectUser(buffer); };
+        commandMap["PASS"] = [this](std::string buffer) { enterUserPassword(buffer); };
+        commandMap["CWD"] = [this](std::string buffer) { changeWorkingDirectory(buffer); };
+        commandMap["CDUP"] = [this](std::string buffer) { changeWorkingDirectoryUp(buffer); };
+        commandMap["QUIT"] = [this](std::string buffer) { quit(buffer); };
+        commandMap["PORT"] = [this](std::string buffer) { connectToPort(buffer); };
+        commandMap["PASV"] = [this](std::string buffer) { openDataSocket(buffer); };
+        commandMap["STOR"] = [this](std::string buffer) { writeNewFile(buffer); };
+        commandMap["RETR"] = [this](std::string buffer) { downloadFile(buffer); };
+        commandMap["LIST"] = [this](std::string buffer) { listDir(buffer); };
+        commandMap["DELE"] = [this](std::string buffer) { deleteFile(buffer); };
+        commandMap["PWD"] = [this](std::string buffer) { pwd(buffer); };
+        commandMap["HELP"] = [this](std::string buffer) { successCommand(buffer); };
+        commandMap["NOOP"] = [this](std::string buffer) { successCommand(buffer); };
+        commandMap["SYST"] = [this](std::string buffer) { syst(buffer); };
+        commandMap["TYPE"] = [this](std::string buffer) { successCommand(buffer); };
+
+        auto it = commandMap.find(cmd);
+
+        if (it != commandMap.end()) {
+            commandMap[cmd](buffer);
+            return;
+        }
+        throw InvalidCommandError();
     }
 
     void ClientData::setPollFdAsRead()

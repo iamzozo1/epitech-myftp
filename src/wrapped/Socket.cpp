@@ -77,7 +77,7 @@ namespace ftp
         size_t size = 0;
         size_t bytesWritten = 0;
 
-        if (buf.empty() || _fd == ERROR)
+        if (_fd == ERROR || buf.empty())
             return 0;
         buf += CRLF;
         size = buf.size();

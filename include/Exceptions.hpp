@@ -108,6 +108,17 @@ namespace ftp
             std::string _message;
     };
 
+    class ChdirError : public std::exception {
+        public:
+            ChdirError() {
+                _message = "Chdir failed: ";
+                _message += + std::strerror(errno);
+            };
+            const char* what() const noexcept override;
+        private:
+            std::string _message;
+    };
+
 } // namespace ftp
 
 
