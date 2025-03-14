@@ -68,3 +68,8 @@ const char* ConnectionClosed::what() const noexcept
 {
     return "221 Service closing control connection.";
 }
+
+const char* NotLoggedInError::what() const noexcept
+{
+    return "530 Not logged in.";
+}

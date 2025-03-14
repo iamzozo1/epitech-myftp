@@ -53,6 +53,11 @@ namespace ftp
             const char* what() const noexcept override;
     };
 
+    class NotLoggedInError : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
     class ReadError : public std::exception {
         public:
             ReadError() {

@@ -13,7 +13,7 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _path(homepath), _user(""), _passiveMode(true)
+    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _path(homepath), _user(""), _passiveMode(true), _authSucceeded(false)
     {}
 
     void ClientData::closeDataSocket()
@@ -338,9 +338,10 @@ namespace ftp
             } catch (const InvalidCommandError &e) {
                 _password = "";
             }
-            if (_user.compare("anonymous") == 0)
+            if (_user.compare(DEFAULT_USER) == 0) {
                 _socket->write("230 User logged in, proceed.");
-            else
+                _authSucceeded = true;
+            } else
                 _socket->write("530 nop, this is not the good password");
         }
     }
@@ -395,6 +396,8 @@ namespace ftp
     {
         std::unordered_map<std::string, std::function<void(std::string)>> commandMap;
 
+        if (!_authSucceeded && cmd.compare("USER") != 0 && cmd.compare("PASS") != 0)
+            throw NotLoggedInError();
         commandMap["USER"] = [this](std::string buffer) { connectUser(buffer); };
         commandMap["PASS"] = [this](std::string buffer) { enterUserPassword(buffer); };
         commandMap["CWD"] = [this](std::string buffer) { changeWorkingDirectory(buffer); };

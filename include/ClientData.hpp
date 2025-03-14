@@ -21,6 +21,7 @@
     #define PERMISSION_NUMBER 10
     #define TIME_STRING_SIZE 80
     #define END_OF_READ 0
+    #define DEFAULT_USER "Anonymous"
 
 namespace ftp
 {
@@ -89,6 +90,7 @@ namespace ftp
             std::string _user;
             std::string _password;
             std::string _path;
+            bool _authSucceeded;
             bool _passiveMode;
     };
 } // namespace ftp
