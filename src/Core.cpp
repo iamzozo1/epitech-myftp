@@ -9,30 +9,25 @@
 
 namespace ftp
 {
-    void Core::start(Server *s)
+    void Core::start(void)
     {
         Poll p;
         std::vector<struct pollfd> fds;
 
         while (true) {
-            fds = s->getFds();
-            p.pollAction(*s, fds.data(), fds.size(), WAIT_FOR_EVENT);
-            
+            fds = _server->getFds();
+            p.pollAction(*_server, fds.data(), fds.size(), WAIT_FOR_EVENT);
+
             if (fds[0].revents & POLLIN) {
-                s->connectClient();
+                _server->connectClient();
             } else {
-                s->handleClients();
+                _server->handleClients();
             }
         }
     }
 
     Core::Core(int port, char const *homePath)
     {
-        try {
-            Server s = Server(port, homePath);
-            start(&s);
-        } catch(const std::exception& e) {
-            std::cerr << e.what() << '\n';
-        }
+        _server = std::make_unique<Server>(port, homePath);
     }
 } // namespace ftp

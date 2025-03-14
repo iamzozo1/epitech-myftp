@@ -89,6 +89,7 @@ namespace ftp
             std::string _user;
             std::string _password;
             std::string _path;
+            bool _passiveMode;
     };
 } // namespace ftp
 

@@ -20,9 +20,10 @@ namespace ftp
             Core(int, char const *);
             ~Core() = default;
 
+            void start(void);
 
         private:
-            void start(Server *s);
+            std::unique_ptr<Server> _server;
     };
 } // namespace ftp
 

@@ -13,7 +13,7 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _path(homepath), _user("")
+    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _path(homepath), _user(""), _passiveMode(true)
     {}
 
     void ClientData::closeDataSocket()
@@ -64,19 +64,22 @@ namespace ftp
 
     void ClientData::sendFile(const std::string &filepath)
     {
+        std::shared_ptr<Socket> transferSocket = _dataSocket;
         std::ifstream file(filepath, std::ios::binary);
         ssize_t bytesRead = 0;
         char buffer[BUFSIZ];
 
-        if (!file.is_open())
-        {
+        if (!file.is_open()) {
             throw FileOpenError();
         }
         _socket->write("150 File status okay; about to open data connection.");
-        _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
+        if (_passiveMode) {
+            transferSocket = std::make_shared<Socket>(_dataSocket->accept(NULL, NULL));
+        } else {
+            _passiveMode = true;
+        }
 
-        while (file)
-        {
+        while (file) {
             file.read(buffer, sizeof(buffer));
             bytesRead = file.gcount();
             if (bytesRead > 0)
@@ -200,7 +203,14 @@ namespace ftp
             return;
         }
         _socket->write("150 File status okay; about to open data connection.");
-        std::unique_ptr<Socket> transferSocket = std::make_unique<Socket>(_dataSocket->accept(NULL, NULL));
+
+        std::shared_ptr<Socket> transferSocket = _dataSocket;
+
+        if (_passiveMode) {
+            transferSocket = std::make_shared<Socket>(_dataSocket->accept(NULL, NULL));
+        } else {
+            _passiveMode = true;
+        }
 
         std::string listing;
         while ((el = readdir(dir)) != NULL) {
@@ -255,13 +265,18 @@ namespace ftp
 
     void ClientData::writeNewFile(std::string buffer)
     {
+        std::shared_ptr<Socket> transferSocket = _dataSocket;
         std::ofstream file(getNewPath(getCommandArg(buffer)));
         char fileContent[BUFSIZ];
 
         _socket->write("150 File status okay; about to open data connection.");
-        _dataSocket->_fd = _dataSocket->accept(NULL, NULL);
+        if (_passiveMode) {
+            transferSocket = std::make_shared<Socket>(_dataSocket->accept(NULL, NULL));
+        } else {
+            _passiveMode = true;
+        }
 
-        while (_dataSocket->read(fileContent, sizeof(fileContent)) != END_OF_READ)
+        while (transferSocket->read(fileContent, sizeof(fileContent)) != END_OF_READ)
             file << fileContent;
 
         file.close();
@@ -303,6 +318,7 @@ namespace ftp
         Server::setAddress(client_addr, AF_INET, port, inet_addr(ipAddress.c_str()));
         _dataSocket->setSockAddress((struct sockaddr *)&client_addr, sizeof(client_addr));
         _dataSocket->connect();
+        _passiveMode = false;
         _socket->write("200 PORT command successful.");
     }
 
