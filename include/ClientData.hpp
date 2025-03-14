@@ -81,6 +81,7 @@ namespace ftp
             void quit(std::string buffer);
             void syst(std::string buffer);
             void successCommand(std::string buffer);
+            void help(std::string buffer);
 
             std::shared_ptr<Socket> _socket;
             std::shared_ptr<Socket> _dataSocket;

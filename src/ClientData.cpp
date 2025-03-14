@@ -322,7 +322,10 @@ namespace ftp
             } catch (const InvalidCommandError &e) {
                 _password = "";
             }
-            _socket->write("230 User logged in, proceed.");
+            if (_user.compare("anonymous") == 0)
+                _socket->write("230 User logged in, proceed.");
+            else
+                _socket->write("530 nop, this is not the good password");
         }
     }
 
@@ -350,6 +353,28 @@ namespace ftp
         _socket->write("200 Command okay.");
     }
 
+    void ClientData::help(std::string buffer)
+    {
+        (void)buffer;
+        _socket->write("214 Help message.");
+        _socket->write("PASS: Specify password for authentication.");
+        _socket->write("CWD: Change working directory.");
+        _socket->write("CDUP: Change to parent directory.");
+        _socket->write("QUIT: Terminate the connection.");
+        _socket->write("PORT: Specify an address and port to which the server should connect.");
+        _socket->write("PASV: Enter passive mode.");
+        _socket->write("STOR: Store a file on the server.");
+        _socket->write("RETR: Retrieve a file from the server.");
+        _socket->write("LIST: List files in the current directory.");
+        _socket->write("DELE: Delete a file on the server.");
+        _socket->write("PWD: Print the current directory.");
+        _socket->write("HELP: Display help information.");
+        _socket->write("NOOP: No operation (used to keep connection alive).");
+        _socket->write("SYST: Return system type.");
+        _socket->write("TYPE: Specify data transfer type.");
+        _socket->write("USER: Specify user for authentication.");
+    }
+
     void ClientData::command(std::string cmd, std::string buffer)
     {
         std::unordered_map<std::string, std::function<void(std::string)>> commandMap;
@@ -366,7 +391,7 @@ namespace ftp
         commandMap["LIST"] = [this](std::string buffer) { listDir(buffer); };
         commandMap["DELE"] = [this](std::string buffer) { deleteFile(buffer); };
         commandMap["PWD"] = [this](std::string buffer) { pwd(buffer); };
-        commandMap["HELP"] = [this](std::string buffer) { successCommand(buffer); };
+        commandMap["HELP"] = [this](std::string buffer) { help(buffer); };
         commandMap["NOOP"] = [this](std::string buffer) { successCommand(buffer); };
         commandMap["SYST"] = [this](std::string buffer) { syst(buffer); };
         commandMap["TYPE"] = [this](std::string buffer) { successCommand(buffer); };
