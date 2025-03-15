@@ -13,7 +13,7 @@
 
 namespace ftp
 {
-    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _path(homepath), _user(""), _passiveMode(true), _authSucceeded(false)
+    ClientData::ClientData(std::string homepath, std::shared_ptr<struct pollfd> pollfd, std::shared_ptr<Socket> socket, std::shared_ptr<Socket> dataSocket) : _socket(socket), _dataSocket(dataSocket), _pollfd(pollfd), _homePath(homepath), _path(homepath), _user(""), _passiveMode(true), _authSucceeded(false)
     {}
 
     void ClientData::closeDataSocket()
@@ -114,34 +114,28 @@ namespace ftp
     {
         std::string newPath;
 
-        if (buffer[0] == '/')
-        {
+        if (buffer[0] == '/') {
             newPath = buffer;
-        }
-        else if (buffer.compare("..") == 0)
-        {
+        } else if (buffer.compare("..") == 0) {
             size_t lastSlash = _path.find_last_of('/');
-            if (lastSlash != std::string::npos && _path != "/")
-            {
+            if (lastSlash != std::string::npos && _path != "/") {
                 newPath = _path.substr(0, lastSlash);
                 if (newPath.empty())
                     newPath = "/";
-            }
-            else
-            {
+            } else {
                 newPath = _path;
             }
-        }
-        else if (buffer.compare(".") == 0)
-        {
+        } else if (buffer.compare(".") == 0) {
             return _path;
-        }
-        else
+        } else
         {
             if (_path.compare("/") == 0)
                 newPath = _path + buffer;
             else
                 newPath = _path + "/" + buffer;
+        }
+        if (newPath.find(_homePath) != 0) {
+            throw InvalidPathError();
         }
         return newPath;
     }
@@ -150,13 +144,10 @@ namespace ftp
     {
         std::string newPath = getNewPath(getCommandArg(buffer));
 
-        try
-        {
+        try {
             chdir(newPath);
             _socket->write("250 Requested file action okay, completed.");
-        }
-        catch (const ChdirError &e)
-        {
+        } catch (const ChdirError &e) {
             _socket->write("550 Failed to change directory.");
         }
     }
@@ -338,7 +329,7 @@ namespace ftp
             } catch (const InvalidCommandError &e) {
                 _password = "";
             }
-            if (_user.compare(DEFAULT_USER) == 0) {
+            if (_user.compare(DEFAULT_USER) == 0 && _password.empty()) {
                 _socket->write("230 User logged in, proceed.");
                 _authSucceeded = true;
             } else

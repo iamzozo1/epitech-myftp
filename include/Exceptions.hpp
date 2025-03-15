@@ -58,6 +58,11 @@ namespace ftp
             const char* what() const noexcept override;
     };
 
+    class InvalidPathError : public std::exception {
+        public:
+            const char* what() const noexcept override;
+    };
+
     class ReadError : public std::exception {
         public:
             ReadError() {

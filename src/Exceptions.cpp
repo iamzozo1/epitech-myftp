@@ -73,3 +73,8 @@ const char* NotLoggedInError::what() const noexcept
 {
     return "530 Not logged in.";
 }
+
+const char* InvalidPathError::what() const noexcept
+{
+    return "550 Invalid path";
+}

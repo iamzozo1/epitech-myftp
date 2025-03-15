@@ -90,6 +90,7 @@ namespace ftp
             std::string _user;
             std::string _password;
             std::string _path;
+            std::string _homePath;
             bool _authSucceeded;
             bool _passiveMode;
     };
