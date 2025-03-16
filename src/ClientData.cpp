@@ -85,10 +85,8 @@ namespace ftp
         while (file) {
             file.read(buffer, sizeof(buffer));
             bytesRead = file.gcount();
-            if (bytesRead > 0)
-            {
-                if (_dataSocket->write(buffer) <= 0)
-                {
+            if (bytesRead > 0) {
+                if (write(transferSocket->_fd, buffer, bytesRead) <= 0) {
                     throw DataSocketWriteError();
                 }
             }
