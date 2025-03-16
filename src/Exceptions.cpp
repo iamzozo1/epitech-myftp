@@ -78,3 +78,8 @@ const char* InvalidPathError::what() const noexcept
 {
     return "550 Invalid path";
 }
+
+const char* InexistantFileError::what() const noexcept
+{
+    return "550 No such file or directory";
+}

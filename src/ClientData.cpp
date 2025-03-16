@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include "ClientData.hpp"
+#include <filesystem>
 #include "Server.hpp"
 
 namespace ftp
@@ -64,6 +65,8 @@ namespace ftp
 
     void ClientData::sendFile(const std::string &filepath)
     {
+        if (!std::filesystem::exists(filepath))
+            throw InexistantFileError();
         std::shared_ptr<Socket> transferSocket = _dataSocket;
         std::ifstream file(filepath, std::ios::binary);
         ssize_t bytesRead = 0;
@@ -91,6 +94,7 @@ namespace ftp
             }
         }
         file.close();
+        closeDataSocket();
     }
 
     std::string ClientData::getCommandArg(std::string buffer) const
@@ -251,7 +255,6 @@ namespace ftp
         } catch(const std::exception& e) {
             _socket->write(e.what());
         }
-        closeDataSocket();
     }
 
     void ClientData::writeNewFile(std::string buffer)
