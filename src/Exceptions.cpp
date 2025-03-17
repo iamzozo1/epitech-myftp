@@ -26,7 +26,7 @@ const char* DataSocketWriteError::what() const noexcept
 
 const char* DataSocketNullError::what() const noexcept
 {
-    return "503 Bad sequence of commands. Use PASV first";
+    return "425 Can't open data connection";
 }
 
 const char* InvalidCommandError::what() const noexcept
